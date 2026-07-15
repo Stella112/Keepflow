@@ -48,13 +48,17 @@ export function classifyDeterministic(
     return { type: 'unknown', confidence: 'low', scores };
   }
 
+  // Confidence reflects both strength and how clear the winner is over the
+  // runner-up. A single unambiguous category (no competing runbook scored) is
+  // at least medium — an obvious "my phone was stolen" should not read as low.
+  const margin = best.score - secondScore;
   let confidence: Confidence;
-  if (best.score >= 3 && best.score >= secondScore * 2) {
+  if (best.score >= 3 && margin >= 2) {
     confidence = 'high';
-  } else if (best.score >= 2) {
+  } else if (best.score >= 2 || (best.score >= 1 && secondScore === 0)) {
     confidence = 'medium';
   } else {
-    confidence = 'low';
+    confidence = 'low'; // weak or genuinely ambiguous (a close runner-up)
   }
 
   return { type: best.type, confidence, scores };
