@@ -33,6 +33,19 @@ describe('classifyDeterministic', () => {
       'unknown',
     );
   });
+
+  it('does not treat non-phone theft as a stolen phone', () => {
+    // Regression: generic "stolen" once matched the phone runbook.
+    expect(classifyDeterministic('my bicycle was stolen from outside the shop').type).toBe(
+      'unknown',
+    );
+    expect(classifyDeterministic('someone stole my wallet and bag').type).toBe('unknown');
+  });
+
+  it('is confident on obvious incidents', () => {
+    expect(classifyDeterministic('my phone was stolen at the station').confidence).not.toBe('low');
+    expect(classifyDeterministic('someone stole my phone').confidence).not.toBe('low');
+  });
 });
 
 describe('gates', () => {
