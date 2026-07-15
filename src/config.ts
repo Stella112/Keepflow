@@ -37,13 +37,14 @@ export interface Config {
     ttlSeconds: number;
   };
   payments: {
-    /** UNVERIFIED external binding — off until confirmed against OKX docs. */
+    /** x402 pay-per-call via the OKX Payment SDK (@okxweb3/x402-express). */
     enabled: boolean;
     payToAddress: string | undefined;
     priceUsd: string;
     network: string;
-    asset: string | undefined;
-    facilitatorUrl: string | undefined;
+    /** True when OKX facilitator creds (OKX_API_KEY/SECRET_KEY/PASSPHRASE) are
+     *  present in the environment — the SDK reads them directly. */
+    okxConfigured: boolean;
   };
 }
 
@@ -71,14 +72,18 @@ export function loadConfig(): Config {
     },
     payments: {
       enabled: envBool('PAYMENTS_ENABLED', false),
-      payToAddress: process.env.X402_PAY_TO_ADDRESS?.trim() || undefined,
+      payToAddress:
+        process.env.PAY_TO_ADDRESS?.trim() ||
+        process.env.X402_PAY_TO_ADDRESS?.trim() ||
+        undefined,
       priceUsd: process.env.X402_PRICE_USD?.trim() || '$0.20',
-      // CAIP-2 network id. X Layer mainnet = eip155:196.
+      // CAIP-2 network id. X Layer mainnet = eip155:196, testnet = eip155:1952.
       network: process.env.X402_NETWORK?.trim() || 'eip155:196',
-      // Optional settlement token contract; omit to let the facilitator resolve
-      // the stablecoin from a `$`-prefixed price.
-      asset: process.env.X402_ASSET?.trim() || undefined,
-      facilitatorUrl: process.env.X402_FACILITATOR_URL?.trim() || undefined,
+      okxConfigured: Boolean(
+        process.env.OKX_API_KEY?.trim() &&
+          process.env.OKX_SECRET_KEY?.trim() &&
+          process.env.OKX_PASSPHRASE?.trim(),
+      ),
     },
   };
 }

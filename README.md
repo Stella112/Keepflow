@@ -97,30 +97,27 @@ curl -sX POST localhost:8080/v1/first-move \
 | `npm run typecheck` | Type-check without emitting |
 | `npm test` | Run the test suite (`vitest`) |
 
-## Payments (x402, seller side)
+## Payments (x402 via the OKX Payment SDK)
 
-Implemented to the public x402 seller/facilitator contract. `PAYMENTS_ENABLED`
-defaults to `false` (unpaid access for local dev); when enabled the gate:
+Uses the official **`@okxweb3/x402-express`** SDK (`src/payments/okx-sdk.ts`),
+wired in `app.ts` to protect `POST /v1/first-move` only (`/` and `/health` stay
+free). `PAYMENTS_ENABLED` defaults to `false` (unpaid access for local dev).
 
-1. Answers an unpaid call with **HTTP 402** + a base64 `PAYMENT-REQUIRED` header
-   carrying `accepts[]` (`scheme:"exact"`, `network:"eip155:196"` (X Layer),
-   `price`, `payTo`).
-2. On a presented `X-PAYMENT` proof, calls the facilitator's `POST /verify`.
-   Verified requests proceed; invalid/unverifiable ones get a fresh 402.
-3. **Settles after the plan is produced** (`POST /settle`), so a caller is
-   charged only on a successful response, returns a base64 `PAYMENT-RESPONSE`
-   header with the tx, and **never double-charges** — a replayed proof returns
-   the cached plan (`X-Idempotent-Replay: true`) with `status: already_settled`.
+When enabled, the SDK owns the whole payment lifecycle: it emits the **HTTP 402**
+challenge (base64 `PAYMENT-REQUIRED` header — JSON for API/SDK clients, an HTML
+paywall only for browsers), verifies the presented `PAYMENT-SIG`, and settles on
+**X Layer** (`eip155:196`). Credentials (`OKX_API_KEY` / `OKX_SECRET_KEY` /
+`OKX_PASSPHRASE`) are read from the environment; the resource server initializes
+against the OKX facilitator on startup — so **real OKX credentials + a payout
+address are required for the endpoint to emit a 402 at all**.
 
-**Fails closed:** enabled but no facilitator (or no `payTo`) configured →
-`500 payment_misconfigured`, never a free call.
+**Fails closed:** `PAYMENTS_ENABLED=true` but OKX creds or `PAY_TO_ADDRESS`
+missing → `500 payment_misconfigured` on the paid route, never a free call. The
+app still starts cleanly (the OKX middleware is only constructed when fully
+configured, so there's no startup dependency in dev).
 
-**One binding still to confirm against OKX docs:** the facilitator base
-URL/auth for X Layer, and any implementation-specific verify/settle response
-fields (the client parses common aliases defensively). Everything else follows
-the published x402 spec. Swapping in an official OKX/x402 seller middleware for
-`src/payments/okx-x402.ts` + `facilitator.ts` is the recommended production
-step. Payment-aware idempotency lives in `src/payments/result-cache.ts`.
+To go live: set `OKX_*` + `PAY_TO_ADDRESS`, `PAYMENTS_ENABLED=true`, then
+register/list the ASP on OKX.AI via Onchain OS (Agentic Wallet).
 
 ## Layout
 

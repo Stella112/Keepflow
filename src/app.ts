@@ -1,6 +1,8 @@
 import express from 'express';
+import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { firstMoveRouter } from './routes/firstmove.js';
+import { createOkxPaymentMiddleware } from './payments/okx-sdk.js';
 import { log } from './observability/logger.js';
 
 export function createApp() {
@@ -31,6 +33,26 @@ export function createApp() {
   });
 
   app.use(healthRouter);
+
+  // Payments (x402 via the OKX SDK). Applied only to the paid route; /health
+  // and / stay free. Off by default (pass-through). When enabled but OKX creds
+  // are missing, fail closed on the paid route rather than serve it for free.
+  if (config.payments.enabled) {
+    const okxPayment = createOkxPaymentMiddleware(config);
+    if (okxPayment) {
+      app.use(okxPayment);
+    } else {
+      app.use((req, res, next) => {
+        if (req.method === 'POST' && req.path === '/v1/first-move') {
+          log.warn('payments.misconfigured', {});
+          res.status(500).json({ error: 'payment_misconfigured' });
+          return;
+        }
+        next();
+      });
+    }
+  }
+
   app.use(firstMoveRouter);
 
   // JSON body parse errors and anything uncaught.
