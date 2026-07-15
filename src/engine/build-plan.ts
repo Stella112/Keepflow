@@ -175,7 +175,11 @@ export async function assemblePlan(params: BuildPlanParams): Promise<FirstMoveOu
   let method: ClassificationMethod = 'deterministic';
   let selectedActionIds: string[] | undefined;
 
-  if (classifier) {
+  // The curated deterministic classifier owns clear classifications. The
+  // model is a refiner for genuinely ambiguous/unknown descriptions only;
+  // keeping it off the high/medium-confidence path avoids unnecessary cost
+  // and latency and prevents a model from overriding a clear runbook match.
+  if (classifier && deterministic.confidence === 'low') {
     const model = await classifier.classify(params.input, redactedDescription);
     if (model) {
       type = model.incidentType;

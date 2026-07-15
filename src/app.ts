@@ -9,6 +9,11 @@ export function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
+  // KeepFlow is reached through exactly one trusted reverse-proxy hop (the
+  // dedicated Cloudflare Tunnel connector). This lets Express honor
+  // X-Forwarded-Proto, so the OKX x402 challenge binds to the caller-facing
+  // HTTPS resource instead of the container's internal HTTP connection.
+  app.set('trust proxy', 1);
   // Modest body limit — descriptions are short free text.
   app.use(express.json({ limit: '64kb' }));
 

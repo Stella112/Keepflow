@@ -3,6 +3,7 @@ import { assemblePlan } from '../src/engine/build-plan.js';
 import { validatePlan } from '../src/engine/validate-plan.js';
 import { RUNBOOKS } from '../src/playbooks/index.js';
 import type { FirstMoveOutput } from '../src/schemas/firstmove-output.js';
+import type { Classifier } from '../src/engine/model-classifier.js';
 
 async function plan(description: string, forceExposure = false): Promise<FirstMoveOutput> {
   return assemblePlan({
@@ -59,6 +60,60 @@ describe('assemblePlan (deterministic)', () => {
     expect(out.incident_type).toBe('seed_or_key_exposure');
     expect(out.classification.method).toBe('deterministic');
     expect(validatePlan(out).valid).toBe(true);
+  });
+});
+
+describe('hybrid classifier policy', () => {
+  it('keeps an obvious incident on the deterministic fast path', async () => {
+    let calls = 0;
+    const classifier: Classifier = {
+      async classify() {
+        calls++;
+        return {
+          incidentType: 'account_takeover',
+          confidence: 'high',
+          selectedActionIds: [],
+        };
+      },
+    };
+
+    const out = await assemblePlan({
+      input: { description: 'someone stole my phone' },
+      redactedDescription: 'someone stole my phone',
+      redactionApplied: false,
+      forceExposure: false,
+      classifier,
+    });
+
+    expect(calls).toBe(0);
+    expect(out.incident_type).toBe('stolen_or_lost_phone');
+    expect(out.classification.method).toBe('deterministic');
+  });
+
+  it('uses the model to refine a low-confidence or unknown description', async () => {
+    let calls = 0;
+    const classifier: Classifier = {
+      async classify() {
+        calls++;
+        return {
+          incidentType: 'lost_authenticator',
+          confidence: 'medium',
+          selectedActionIds: [],
+        };
+      },
+    };
+
+    const out = await assemblePlan({
+      input: { description: 'I cannot use the security code thing anymore' },
+      redactedDescription: 'I cannot use the security code thing anymore',
+      redactionApplied: false,
+      forceExposure: false,
+      classifier,
+    });
+
+    expect(calls).toBe(1);
+    expect(out.incident_type).toBe('lost_authenticator');
+    expect(out.classification.method).toBe('model');
   });
 });
 
