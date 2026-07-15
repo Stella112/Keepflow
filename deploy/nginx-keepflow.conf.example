@@ -1,0 +1,24 @@
+# nginx reverse-proxy server block for KeepFlow — use this if your VPS already
+# runs nginx (e.g. for prism pulse). Add as a new site; it does NOT touch other
+# server blocks, so co-hosted apps are unaffected.
+#
+#   sudo cp nginx-keepflow.conf.example /etc/nginx/sites-available/keepflow
+#   sudo ln -s /etc/nginx/sites-available/keepflow /etc/nginx/sites-enabled/
+#   sudo certbot --nginx -d keepflow.example.com    # provisions HTTPS
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Replace keepflow.example.com with a subdomain pointing at this VPS.
+
+server {
+    listen 80;
+    server_name keepflow.example.com;
+
+    location / {
+        proxy_pass         http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}

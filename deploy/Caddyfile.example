@@ -1,0 +1,14 @@
+# Caddy reverse-proxy snippet for KeepFlow — RECOMMENDED (automatic HTTPS via
+# Let's Encrypt, no certbot to manage).
+#
+# Add this block to your existing Caddyfile alongside whatever routes
+# "prism pulse". Caddy multiplexes many sites on ports 80/443 by hostname, so
+# the two apps never collide.
+#
+# Replace keepflow.example.com with a subdomain whose DNS A/AAAA record points
+# at this VPS. Reload with:  caddy reload --config /etc/caddy/Caddyfile
+
+keepflow.example.com {
+    encode gzip
+    reverse_proxy 127.0.0.1:8090
+}

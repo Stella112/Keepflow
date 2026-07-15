@@ -1,0 +1,31 @@
+# KeepFlow / First Move — single lightweight service, safe to co-host with
+# other apps on the same VPS.
+#
+# Key isolation choices:
+#  - Publishes ONLY to 127.0.0.1:8090 (localhost), never 0.0.0.0 — it is not
+#    directly internet-exposed; your reverse proxy (Caddy/nginx) reaches it and
+#    terminates HTTPS. This cannot collide with another app's public 80/443.
+#  - Pick any free host port; 8090 is just a default. If 8090 is taken, change
+#    the left-hand number below.
+#  - Small resource caps so it can never starve a co-tenant (e.g. prism pulse).
+services:
+  keepflow:
+    build: .
+    container_name: keepflow
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:8090:8080"
+    mem_limit: 256m
+    cpus: 0.5
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
