@@ -20,6 +20,10 @@ import {
   validatePaidRequestBeforePayment,
 } from './payments/paid-routes.js';
 import { log } from './observability/logger.js';
+import {
+  reminderPackPrepaymentGuard,
+  reminderPackRouter,
+} from './routes/reminder-pack.js';
 
 export interface CreateAppOptions {
   /** Test/integration seam. Production uses the configured bounded providers. */
@@ -84,6 +88,10 @@ export function createApp(options: CreateAppOptions = {}) {
   // and before x402 so a prohibited handover never produces a payment prompt.
   app.post('/v1/work-handover', workHandoverPrepaymentGuard);
 
+  // Reminder Pack rejects stale, malformed, or secret-bearing events before
+  // payment and reuses the exact validated event set after settlement.
+  app.post('/v1/reminder-pack', reminderPackPrepaymentGuard);
+
   // Reject malformed, secret-bearing, or prohibited paid requests before the
   // customer sees an x402 challenge. Route handlers validate again as a
   // defense-in-depth boundary after payment verification.
@@ -113,6 +121,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(studyFlowRouter);
   app.use(createStudyAssistRouter(options.studyAssistDependencies));
   app.use(workHandoverRouter);
+  app.use(reminderPackRouter);
 
   // JSON body parse errors and anything uncaught.
   app.use(

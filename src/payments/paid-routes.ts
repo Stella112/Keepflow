@@ -80,6 +80,12 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     inputSchema: WorkHandoverInputSchema,
     allowSecretBearingInput: false,
   },
+  {
+    method: 'POST',
+    path: '/v1/reminder-pack',
+    description: 'KeepFlow - Calendar Reminder Pack',
+    bodyValidation: 'prevalidated_body',
+  },
 ] as const;
 
 export const PAID_ROUTE_KEYS = PAID_ROUTE_SPECS.map(

@@ -49,15 +49,16 @@ function run(
 }
 
 describe('paid-route registry', () => {
-  it('contains all five exact paid capabilities at the shared five-cent default', () => {
+  it('contains all six exact paid capabilities at the shared five-cent default', () => {
     expect(PAID_ROUTE_KEYS).toEqual([
       'POST /v1/first-move',
       'POST /v1/daily-flow',
       'POST /v1/study-flow',
       'POST /v1/study-assist',
       'POST /v1/work-handover',
+      'POST /v1/reminder-pack',
     ]);
-    expect(PAID_ROUTE_SPECS).toHaveLength(5);
+    expect(PAID_ROUTE_SPECS).toHaveLength(6);
     expect(loadConfig().payments.priceUsd).toBe('$0.05');
 
     expect(findPaidRoute('POST', '/v1/study-assist')).toMatchObject({
@@ -110,6 +111,16 @@ describe('prevalidated paid bodies', () => {
     expect(next).not.toHaveBeenCalled();
     expect(state.statusCode).toBe(500);
     expect(state.body).toEqual({ error: 'paid_route_prevalidation_missing' });
+
+    const reminderState = responseState();
+    const reminderNext = run(
+      validatePaidRequestBeforePayment,
+      request('POST', '/v1/reminder-pack', { should_not_be_read: true }),
+      reminderState,
+    );
+    expect(reminderNext).not.toHaveBeenCalled();
+    expect(reminderState.statusCode).toBe(500);
+    expect(reminderState.body).toEqual({ error: 'paid_route_prevalidation_missing' });
   });
 
   it('accepts only a server marker for that exact canonical route', () => {

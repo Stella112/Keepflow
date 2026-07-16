@@ -19,7 +19,8 @@ healthRouter.get('/', (_req, res) => {
       'moments: Daily Flow supports adult meal and movement routines; First Move ' +
       'orders digital-incident recovery; Study executes academic plans and provides ' +
       'grounded learning, material explanation, and verified-source discovery; and ' +
-      'Work produces operational handovers.',
+      'Work produces operational handovers. Reminder Pack turns future actions from ' +
+      'any service into importable calendar alerts without storing reminder data.',
     endpoints: {
       health: 'GET /health',
       first_move: 'POST /v1/first-move  (JSON body: { "description": "..." })',
@@ -27,6 +28,7 @@ healthRouter.get('/', (_req, res) => {
       study_flow: 'POST /v1/study-flow  (JSON academic goal, tasks, availability, and constraints)',
       study_assist: 'POST /v1/study-assist  (JSON study material or research query with explicit external-processing acknowledgement)',
       work_handover: 'POST /v1/work-handover  (JSON operational state, tasks, owners, and dependencies)',
+      reminder_pack: 'POST /v1/reminder-pack  (JSON future events converted to importable calendar alarms)',
     },
     services: [
       { priority: 1, name: 'Daily Flow - Constraint-Aware Meal & Movement Checklist' },
@@ -37,6 +39,9 @@ healthRouter.get('/', (_req, res) => {
         capabilities: ['study planning', 'material explanation', 'practice support', 'source discovery'],
       },
       { priority: 4, name: 'KeepFlow Work - Operational Handover' },
+    ],
+    companion_capabilities: [
+      'stateless calendar reminder packs with importable alerts',
     ],
     first_move_supported_incidents: [
       'stolen or lost phone',
@@ -61,5 +66,7 @@ healthRouter.get('/health', (_req, res) => {
       : 'deterministic_source_map_fallback',
     payments_enabled: config.payments.enabled,
     service_count: 4,
+    paid_capability_count: 6,
+    reminder_delivery_mode: 'calendar_import',
   });
 });

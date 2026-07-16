@@ -6,12 +6,14 @@ KeepFlow is a **Lifestyle Continuity Companion**: an Agent Service Provider
 (ASP) that helps people keep moving through everyday routines and disruptive
 moments with a clear, safe next step.
 
-It currently exposes four core paid, stateless services through five endpoints:
+It currently exposes four core paid, stateless services through six endpoints.
+Reminder Pack is a cross-service companion capability, not a fifth core service:
 
 - **Daily Flow - Constraint-Aware Meal & Movement Checklist**
 - **First Move - Ordered Incident Recovery**
 - **KeepFlow Study - Academic Execution, Grounded Learning & Research Support**
 - **KeepFlow Work - Operational Handover**
+- **Reminder Pack - Importable Calendar Alerts** *(companion capability)*
 
 ---
 
@@ -103,6 +105,40 @@ curl -sX POST localhost:8080/v1/daily-flow \
       "available_foods":["rice","tofu","bok choy","egg","orange","sweet potato"]
     },
     "health_screen":{}
+  }'
+```
+
+## Reminder Pack
+
+Reminder Pack turns future actions from any KeepFlow plan into a standards-based
+`.ics` calendar file with display alarms. The caller supplies one or more event
+times, titles, durations, alert lead times, and the originating KeepFlow service.
+The response includes a base64-encoded calendar file that can be imported into
+Google Calendar, Apple Calendar, Outlook, or another compatible application.
+
+This is real calendar reminder support, but it is not a background notification
+server. KeepFlow remains stateless: it does not store events, contact users, or
+claim that an alert was delivered. The calendar application delivers alerts only
+after the user imports the file and permits notifications. Event times must be at
+least ten minutes in the future; up to 50 events and seven-day alert lead times are
+supported. Credential-shaped content is rejected before payment.
+
+Call Reminder Pack locally:
+
+```bash
+curl -sX POST localhost:8080/v1/reminder-pack \
+  -H 'content-type: application/json' \
+  -d '{
+    "calendar_name":"KeepFlow Study Week",
+    "timezone":"Africa/Lagos",
+    "events":[{
+      "id":"study-001",
+      "title":"Review cellular respiration",
+      "starts_at":"2035-07-16T18:00:00+01:00",
+      "duration_minutes":45,
+      "alert_minutes_before":15,
+      "source_service":"study"
+    }]
   }'
 ```
 
@@ -357,10 +393,11 @@ curl -sX POST localhost:8080/v1/first-move \
 
 Uses the official **`@okxweb3/x402-express`** SDK (`src/payments/okx-sdk.ts`),
 wired in `app.ts` to protect `POST /v1/daily-flow`, `POST /v1/first-move`,
-`POST /v1/study-flow`, `POST /v1/study-assist`, and
-`POST /v1/work-handover` (`/` and `/health` stay free). These five paid routes
+`POST /v1/study-flow`, `POST /v1/study-assist`, `POST /v1/work-handover`, and
+`POST /v1/reminder-pack` (`/` and `/health` stay free). These six paid routes
 belong to the four core services; Study planning and Study Assist are two
-capabilities of KeepFlow Study, not separate core services.
+capabilities of KeepFlow Study, and Reminder Pack is a cross-service companion
+capability rather than a separate core service.
 `PAYMENTS_ENABLED` defaults to `false` for local development. Every paid call
 uses the configured price, currently `$0.05` by default. Strict input,
 academic-integrity, material, and credential checks run before the payment
@@ -389,7 +426,7 @@ register/list the ASP on OKX.AI via Onchain OS (Agentic Wallet).
 keepflow/
 ├── src/
 │   ├── server.ts, app.ts, config.ts
-│   ├── routes/        health, firstmove, daily-flow, study-flow, study-assist, work-handover
+│   ├── routes/        health, firstmove, daily-flow, study-flow, study-assist, work-handover, reminder-pack
 │   ├── schemas/       strict input/output contracts for all four services
 │   ├── security/      secret/identifier controls plus danger, integrity, and misuse gates
 │   ├── engine/        planning, bounded material extraction, grounded tutoring, and validation

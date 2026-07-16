@@ -24,12 +24,17 @@ describe('KeepFlow service descriptors', () => {
         version: string;
         study_tutor_mode: string;
         endpoints: Record<string, string>;
+        companion_capabilities: string[];
         services: Array<{ priority: number; name: string; capabilities?: string[] }>;
       };
 
       expect(response.status).toBe(200);
-      expect(body.version).toBe('0.3.0');
+      expect(body.version).toBe('0.4.0');
       expect(body.endpoints.study_assist).toContain('POST /v1/study-assist');
+      expect(body.endpoints.reminder_pack).toContain('POST /v1/reminder-pack');
+      expect(body.companion_capabilities).toContain(
+        'stateless calendar reminder packs with importable alerts',
+      );
       expect(body.services).toHaveLength(4);
       expect(body.services.filter((service) => service.name.includes('KeepFlow Study')))
         .toHaveLength(1);
@@ -50,14 +55,18 @@ describe('KeepFlow service descriptors', () => {
         status: string;
         version: string;
         service_count: number;
+        paid_capability_count: number;
+        reminder_delivery_mode: string;
         study_tutor_mode: string;
       };
 
       expect(response.status).toBe(200);
       expect(body).toMatchObject({
         status: 'ok',
-        version: '0.3.0',
+        version: '0.4.0',
         service_count: 4,
+        paid_capability_count: 6,
+        reminder_delivery_mode: 'calendar_import',
         study_tutor_mode: config.studyAssistant.enabled
           ? 'grounded_ai'
           : 'deterministic_source_map_fallback',

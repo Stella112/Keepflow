@@ -46,6 +46,7 @@ describe('payment configuration', () => {
       'POST /v1/study-flow',
       'POST /v1/study-assist',
       'POST /v1/work-handover',
+      'POST /v1/reminder-pack',
     ]);
   });
 
@@ -233,6 +234,78 @@ describe('Study and Work HTTP routes', () => {
       expect(response.status).toBe(400);
       expect(text).not.toContain(secret);
       expect(text).toContain('sensitive_data_detected');
+    });
+  });
+});
+
+describe('Reminder Pack HTTP route', () => {
+  const validReminder = {
+    calendar_name: 'KeepFlow Week',
+    timezone: 'Africa/Lagos',
+    events: [{
+      id: 'study-001',
+      title: 'Review cellular respiration',
+      starts_at: '2035-07-16T18:00:00+01:00',
+      duration_minutes: 45,
+      alert_minutes_before: 15,
+      source_service: 'study',
+    }],
+  };
+
+  it('serves an importable calendar alarm through the complete app stack', async () => {
+    await withApp(createApp(), async (origin) => {
+      const response = await fetch(`${origin}/v1/reminder-pack`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(validReminder),
+      });
+      const body = await response.json() as {
+        delivery_mode: string;
+        event_count: number;
+        calendar_file: { content_base64: string };
+      };
+      const calendar = Buffer.from(body.calendar_file.content_base64, 'base64').toString('utf8');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(body.delivery_mode).toBe('calendar_import');
+      expect(body.event_count).toBe(1);
+      expect(calendar).toContain('BEGIN:VALARM');
+    });
+  });
+
+  it('rejects stale or secret-bearing events before the payment layer', async () => {
+    const previous = { ...config.payments };
+    config.payments.enabled = true;
+    config.payments.okxConfigured = false;
+    config.payments.payToAddress = undefined;
+    const app = createApp();
+    Object.assign(config.payments, previous);
+
+    await withApp(app, async (origin) => {
+      const stale = await fetch(`${origin}/v1/reminder-pack`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          ...validReminder,
+          events: [{ ...validReminder.events[0], starts_at: '2020-01-01T00:00:00+00:00' }],
+        }),
+      });
+      expect(stale.status).toBe(400);
+
+      const secret = `sk-${'a'.repeat(32)}`;
+      const sensitive = await fetch(`${origin}/v1/reminder-pack`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          ...validReminder,
+          events: [{ ...validReminder.events[0], note: `API key: ${secret}` }],
+        }),
+      });
+      const text = await sensitive.text();
+      expect(sensitive.status).toBe(400);
+      expect(text).toContain('sensitive_input_detected');
+      expect(text).not.toContain(secret);
     });
   });
 });
