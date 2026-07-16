@@ -104,6 +104,24 @@ describe('plan usefulness corpus', () => {
     expect(plan.immediate_actions[0]?.priority_class).toBe('irreversible_loss');
     expect(plan.immediate_actions[0]?.action).toContain('brand-new wallet');
   });
+
+  it('does not omit physical-card loss or limited-connectivity continuity from phone recovery', async () => {
+    const description =
+      'My phone and physical wallet were stolen abroad and I may lose this laptop connection soon';
+    const plan = await assemblePlan({
+      input: { description },
+      redactedDescription: description,
+      redactionApplied: false,
+      forceExposure: false,
+      classifier: null,
+    });
+
+    const actions = plan.immediate_actions.map((action) => action.action).join('\n');
+    expect(actions).toMatch(/each issuer's official app or emergency channel/i);
+    expect(actions).toMatch(/short offline checklist/i);
+    expect(actions).not.toMatch(/we (?:contacted|froze|locked)/i);
+    expect(validatePlan(plan)).toEqual({ valid: true, errors: [] });
+  });
 });
 
 describe('adversarial request corpus', () => {

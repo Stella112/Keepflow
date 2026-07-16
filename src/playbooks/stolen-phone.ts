@@ -9,7 +9,7 @@ import type { Runbook } from './types.js';
  */
 export const stolenPhone: Runbook = {
   id: 'digital-access/stolen-phone',
-  version: '1.0.0',
+  version: '1.1.0',
   incidentType: 'stolen_or_lost_phone',
   title: 'Stolen or lost phone',
   matchTerms: [
@@ -55,6 +55,19 @@ export const stolenPhone: Runbook = {
       providerClass: 'local police / emergency services',
     },
     {
+      id: 'freeze-physical-cards',
+      action:
+        'Freeze or lock every missing payment card through each issuer\'s official app or emergency channel, then review recent transactions and report anything you do not recognise.',
+      urgency: 'immediate',
+      priorityClass: 'irreversible_loss',
+      condition: 'If a physical wallet or any payment cards were stolen with the phone.',
+      reason:
+        'A stolen card can be used independently of the phone, and freezing it quickly limits further financial loss.',
+      confidence: 'high',
+      providerClass: 'each card issuer or bank',
+      evidence: ['the last four digits of each missing card', 'unrecognised transaction details'],
+    },
+    {
       id: 'email-sessions',
       action:
         'From a trusted second device, change your primary email password and sign out of all its active sessions.',
@@ -79,6 +92,18 @@ export const stolenPhone: Runbook = {
       confidence: 'high',
       providerClass: 'the affected exchange, bank, or platform',
       mitigatesCascade: ['c-open-sessions'],
+    },
+    {
+      id: 'prepare-for-offline',
+      action:
+        'While this trusted connection still works, complete the highest-impact online steps first, save each provider\'s official recovery channel, and write down a short offline checklist without copying passwords, one-time codes, or recovery phrases.',
+      urgency: 'immediate',
+      priorityClass: 'exploitable_access',
+      condition: 'If you may soon lose internet or access to this trusted second device.',
+      reason:
+        'Securing the most exposed accounts now and keeping non-secret contact details available prevents a connection loss from stopping recovery.',
+      confidence: 'high',
+      providerClass: 'your email, bank, device-platform, and mobile providers',
     },
     {
       id: 'remote-lock',
@@ -185,11 +210,15 @@ export const stolenPhone: Runbook = {
     'Whether the phone was locked with a strong passcode / biometrics at the moment it was lost.',
     'Whether your authenticator app was backed up or existed only on this device.',
     'Whether your number is used as the recovery method for high-value accounts.',
+    'Whether physical payment cards or identity documents were stolen with the phone.',
+    'Whether access to the current trusted device or internet connection may end soon.',
   ],
   questions: [
     'Was the phone locked when it went missing?',
     'Was your authenticator app stored only on that phone?',
     'Is that phone number the recovery method for your email or exchange?',
+    'Were any physical payment cards or identity documents stolen too?',
+    'How long will you have this trusted device and internet connection?',
   ],
   limitations: [
     'No live account, carrier, or device status was checked by this service.',

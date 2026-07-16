@@ -61,6 +61,25 @@ describe('assemblePlan (deterministic)', () => {
     expect(out.classification.method).toBe('deterministic');
     expect(validatePlan(out).valid).toBe(true);
   });
+
+  it('covers a stolen physical wallet and a fading connection in a mixed phone incident', async () => {
+    const out = await plan(
+      'My phone and wallet were stolen while travelling, and I may lose internet soon.',
+    );
+
+    expect(out.incident_type).toBe('stolen_or_lost_phone');
+    expect(out.runbook_version).toBe('1.1.0');
+    expect(out.immediate_actions.map((action) => action.action).join(' ')).toMatch(
+      /freeze or lock every missing payment card/i,
+    );
+    expect(out.immediate_actions.map((action) => action.action).join(' ')).toMatch(
+      /trusted connection still works/i,
+    );
+    expect(out.questions).toContain(
+      'Were any physical payment cards or identity documents stolen too?',
+    );
+    expect(validatePlan(out)).toEqual({ valid: true, errors: [] });
+  });
 });
 
 describe('hybrid classifier policy', () => {
