@@ -33,8 +33,16 @@ export interface Config {
     model: string;
     timeoutMs: number;
   };
-  resultCache: {
-    ttlSeconds: number;
+  studyAssistant: {
+    /** Grounded explanation is optional; deterministic source mapping remains available. */
+    enabled: boolean;
+    apiKey: string | undefined;
+    model: string;
+    timeoutMs: number;
+  };
+  research: {
+    crossrefMailto: string | undefined;
+    timeoutMs: number;
   };
   payments: {
     /** x402 pay-per-call via the OKX Payment SDK (@okxweb3/x402-express). */
@@ -57,7 +65,7 @@ export function loadConfig(): Config {
       asp: 'KeepFlow',
       name: 'KeepFlow - Lifestyle Continuity Companion',
       tagline: 'The next safe step for everyday routines and life disruptions.',
-      version: '0.2.0',
+      version: '0.3.0',
     },
     classifier: {
       llmEnabled: Boolean(apiKey),
@@ -67,8 +75,16 @@ export function loadConfig(): Config {
       model: process.env.FIRSTMOVE_MODEL?.trim() || 'claude-opus-4-8',
       timeoutMs: envInt('FIRSTMOVE_MODEL_TIMEOUT_MS', 6000),
     },
-    resultCache: {
-      ttlSeconds: envInt('RESULT_CACHE_TTL_SECONDS', 900),
+    studyAssistant: {
+      enabled: Boolean(apiKey) && envBool('STUDY_AI_ENABLED', true),
+      apiKey,
+      // Study Assist is intentionally cost-bounded at the five-cent price.
+      model: process.env.STUDY_AI_MODEL?.trim() || 'claude-haiku-4-5',
+      timeoutMs: envInt('STUDY_AI_TIMEOUT_MS', 25_000),
+    },
+    research: {
+      crossrefMailto: process.env.CROSSREF_MAILTO?.trim() || undefined,
+      timeoutMs: envInt('CROSSREF_TIMEOUT_MS', 8_000),
     },
     payments: {
       enabled: envBool('PAYMENTS_ENABLED', false),

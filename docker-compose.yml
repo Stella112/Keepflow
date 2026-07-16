@@ -1,5 +1,5 @@
-# KeepFlow / First Move — single lightweight service, safe to co-host with
-# other apps on the same VPS.
+# KeepFlow — one container exposing four core lifestyle-continuity services,
+# safe to co-host with other apps on the same VPS.
 #
 # Key isolation choices:
 #  - Publishes ONLY to 127.0.0.1:8090 (localhost), never 0.0.0.0 — it is not
@@ -7,7 +7,8 @@
 #    terminates HTTPS. This cannot collide with another app's public 80/443.
 #  - Pick any free host port; 8090 is just a default. If 8090 is taken, change
 #    the left-hand number below.
-#  - Small resource caps so it can never starve a co-tenant (e.g. prism pulse).
+#  - Bounded resource caps help isolate co-tenants. Study Assist additionally
+#    bounds PDF size/page count, parses PDFs in a worker, and limits model time.
 services:
   keepflow:
     build: .

@@ -6,11 +6,11 @@ KeepFlow is a **Lifestyle Continuity Companion**: an Agent Service Provider
 (ASP) that helps people keep moving through everyday routines and disruptive
 moments with a clear, safe next step.
 
-It currently exposes four paid, stateless services:
+It currently exposes four core paid, stateless services through five endpoints:
 
 - **Daily Flow - Constraint-Aware Meal & Movement Checklist**
 - **First Move - Ordered Incident Recovery**
-- **KeepFlow Study - Academic Execution**
+- **KeepFlow Study - Academic Execution, Grounded Learning & Research Support**
 - **KeepFlow Work - Operational Handover**
 
 ---
@@ -115,12 +115,151 @@ definition and evidence of done to each session. It supports international IANA
 timezones, Unicode content, limited internet/device access, accessibility needs,
 and pressure-aware load reduction.
 
+The same core service also provides **Study Assist**: a student can supply text
+or an extractable PDF, ask for a detailed explanation, summary, or fresh
+practice questions, and optionally request traceable research candidates. Study
+Assist grounds learning output in exact excerpts from the supplied material;
+research metadata is fetched separately so the tutor model cannot invent a DOI,
+publication title, or URL.
+
 It organizes legitimate study work; it does not generate assessed submissions,
 take live assessments, impersonate learners, invent citations, or promise
 grades. Academic-integrity requests are redirected to permitted preparation,
 and an immediate safety concern pauses study scheduling.
 
-Endpoint: `POST /v1/study-flow`
+Endpoints:
+
+- `POST /v1/study-flow` — academic execution planning
+- `POST /v1/study-assist` — grounded material learning and research discovery
+
+### Study Assist operations
+
+- `explain_material` explains the supplied material at the requested learner
+  level and depth. A `question` is required.
+- `summarize_material` produces a grounded summary of the supplied material.
+- `practice_questions` creates new self-check questions and answer guidance
+  from the supplied material. A `question` describing the practice focus is
+  required; it does not reproduce a live assessment.
+- `recommend_sources` searches for research candidates without requiring an
+  upload. `research.enabled` and an explicit `research.query` are required.
+
+Every request declares `subject`, `topic`, `learner_level`, `output_language`,
+`depth`, an allowed `academic_integrity.requested_action`, and
+`external_processing_acknowledged: true`. The acknowledgement is mandatory
+because sanitized material chunks may be sent to the configured tutor provider
+and research queries are sent to Crossref.
+
+Supported learner levels are `primary`, `secondary`, `vocational`,
+`undergraduate`, `postgraduate`, `professional`, and `other`; supported depths
+are `concise`, `standard`, and `detailed`.
+
+### Material limits and grounding
+
+Study Assist accepts one material object per request:
+
+- Text: `type: "text"`, a 1–160 character title, and 80–24,000 characters of
+  content.
+- PDF: `type: "pdf_base64"`, a title, and canonical padded base64 in `data`.
+  Do not include whitespace or a `data:` URI prefix. The decoded PDF must be at
+  most 1 MiB, at most 40 pages, and at most 24,000 extracted characters.
+
+PDF parsing runs in a bounded worker with a maximum five-second parse window.
+Encrypted, malformed, image-only/scanned PDFs, and PDFs without enough
+extractable text are rejected before payment. OCR, images, DOCX, and other file
+types are not supported in this release.
+
+When `ANTHROPIC_API_KEY` is configured and `STUDY_AI_ENABLED=true`, the selected
+`STUDY_AI_MODEL` receives only bounded, sanitized chunks. Every generated
+summary, explanation section, concept, glossary item, misconception correction,
+and practice item must reference valid evidence IDs. The response resolves those
+IDs to exact excerpts and text offsets or PDF page locations in the normalized,
+sanitized extracted-text representation. Model output containing a URL, a
+secret, or an unknown evidence ID is rejected.
+
+If the tutor is disabled, times out, or returns invalid output, the endpoint
+returns `mode: "partial"` with a clearly labelled deterministic source map. It
+does not pretend that fallback excerpts are an AI-authored explanation.
+
+### Research recommendations
+
+Research discovery accepts a 3–300 character query, an optional
+`published_after_year`, and `max_sources` from 1 to 6 (default 4). It queries
+Crossref for DOI-bearing journal-article metadata and copies the normalized
+provider result into the response without tutor-model rewriting, with a
+canonical `https://doi.org/...` link. Depending on the subject, the response can
+also include fixed official search-portal links for Crossref, ERIC, or PubMed.
+Portal links are search destinations, not citations or evidence.
+
+`crossref_registry_record_found` means a matching registry record was found.
+`no_crossref_update_flag_at_retrieval_time` means Crossref did not report a
+registered update for that record at retrieval time. Neither status proves peer
+review, accuracy, relevance, publication quality, or the absence of every
+correction/retraction. Crossref metadata can be incomplete, and inclusion is not
+an endorsement. Students should open the paper, inspect the methods and venue,
+check current correction/retraction information, and follow course requirements
+before citing it. If Crossref is unavailable or finds no qualifying record,
+KeepFlow returns no invented fallback citation.
+
+### Study Assist privacy and integrity
+
+KeepFlow itself is stateless: it does not retain uploads or conversations and
+sets `Cache-Control: no-store`. Before the payment step, it parses and bounds the
+material, rejects credential-shaped content, and masks direct email addresses,
+labelled phone numbers, and labelled student/learner/matriculation IDs. For a
+request that proceeds to payment, the raw body is cleared first; bounded
+sanitized data is held only for the active response and cleared on response
+finish/close. Mutable PDF bytes are zeroed on a best-effort basis.
+
+Secret detection rejects passwords, private keys, payment-card data, OTPs,
+access tokens, and connection credentials without echoing their values. Name
+detection is intentionally not claimed: person names are not reliably masked,
+so callers must remove unnecessary names and other identifying information.
+
+External processing is real. Sanitized chunks may be processed under the AI
+provider's own retention and privacy terms, and research queries are processed
+by Crossref. `CROSSREF_MAILTO`, when configured, must be an operator contact—not
+a learner email or material-derived address. Do not upload content you are not
+authorized to share.
+
+Call Study Assist with text plus optional research discovery:
+
+```bash
+curl -sX POST localhost:8080/v1/study-assist \
+  -H 'content-type: application/json' \
+  -d '{
+    "operation":"explain_material",
+    "subject":"Biology",
+    "topic":"Cellular respiration and ATP production",
+    "learner_level":"undergraduate",
+    "question":"Explain how the electron transport chain supports ATP synthesis.",
+    "output_language":"English",
+    "depth":"detailed",
+    "material":{
+      "type":"text",
+      "title":"Course notes: cellular respiration",
+      "content":"During oxidative phosphorylation, electrons move through membrane protein complexes. Their energy pumps protons across the inner mitochondrial membrane, creating an electrochemical gradient that ATP synthase uses to produce ATP."
+    },
+    "research":{
+      "enabled":true,
+      "query":"mitochondrial electron transport chain ATP synthase review",
+      "published_after_year":2018,
+      "max_sources":4
+    },
+    "academic_integrity":{"requested_action":"learn_concepts"},
+    "external_processing_acknowledged":true
+  }'
+```
+
+For PDF input, replace `material` with this JSON shape (base64 data abbreviated
+here and therefore not directly callable):
+
+```json
+{
+  "type": "pdf_base64",
+  "title": "Authorized course handout",
+  "data": "JVBERi0xLjQ...canonical-padded-base64...=="
+}
+```
 
 The session design follows evidence-based study principles such as spacing,
 retrieval practice, and using checks to identify what needs more study, as
@@ -182,6 +321,8 @@ All responses set `Cache-Control: no-store`.
 
 ## Run locally
 
+Requires Node.js 24 or newer.
+
 ```bash
 npm install
 cp .env.example .env      # optional: set ANTHROPIC_API_KEY to enable the hybrid path
@@ -216,15 +357,19 @@ curl -sX POST localhost:8080/v1/first-move \
 
 Uses the official **`@okxweb3/x402-express`** SDK (`src/payments/okx-sdk.ts`),
 wired in `app.ts` to protect `POST /v1/daily-flow`, `POST /v1/first-move`,
-`POST /v1/study-flow`, and `POST /v1/work-handover` (`/` and `/health` stay
-free). `PAYMENTS_ENABLED` defaults to `false` for local development. Every paid
-call uses the configured price, currently `$0.05` by default. Strict input and
-credential checks run before the payment challenge, so malformed or sensitive
-requests are rejected without asking the customer to pay.
+`POST /v1/study-flow`, `POST /v1/study-assist`, and
+`POST /v1/work-handover` (`/` and `/health` stay free). These five paid routes
+belong to the four core services; Study planning and Study Assist are two
+capabilities of KeepFlow Study, not separate core services.
+`PAYMENTS_ENABLED` defaults to `false` for local development. Every paid call
+uses the configured price, currently `$0.05` by default. Strict input,
+academic-integrity, material, and credential checks run before the payment
+challenge, so unusable or prohibited requests are rejected without asking the
+customer to pay or contacting an external provider.
 
 When enabled, the SDK owns the whole payment lifecycle: it emits the **HTTP 402**
 challenge (base64 `PAYMENT-REQUIRED` header — JSON for API/SDK clients, an HTML
-paywall only for browsers), verifies the presented `PAYMENT-SIG`, and settles on
+paywall only for browsers), verifies the presented `PAYMENT-SIGNATURE`, and settles on
 **X Layer** (`eip155:196`). Credentials (`OKX_API_KEY` / `OKX_SECRET_KEY` /
 `OKX_PASSPHRASE`) are read from the environment; the resource server initializes
 against the OKX facilitator on startup — so **real OKX credentials + a payout
@@ -244,10 +389,11 @@ register/list the ASP on OKX.AI via Onchain OS (Agentic Wallet).
 keepflow/
 ├── src/
 │   ├── server.ts, app.ts, config.ts
-│   ├── routes/        health, firstmove, daily-flow, study-flow, work-handover
+│   ├── routes/        health, firstmove, daily-flow, study-flow, study-assist, work-handover
 │   ├── schemas/       strict input/output contracts for all four services
-│   ├── security/      secret redaction plus danger and misuse gates
-│   ├── engine/        deterministic planning, validation, repair, and evaluation
+│   ├── security/      secret/identifier controls plus danger, integrity, and misuse gates
+│   ├── engine/        planning, bounded material extraction, grounded tutoring, and validation
+│   ├── research/      bounded Crossref discovery plus fixed official portal links
 │   ├── playbooks/     versioned digital-incident recovery runbooks
 │   ├── payments/      OKX x402 middleware and central paid-route registry
 │   └── observability/ privacy-safe structured logging

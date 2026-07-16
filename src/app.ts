@@ -5,6 +5,11 @@ import { firstMoveRouter } from './routes/firstmove.js';
 import { dailyFlowRouter } from './routes/daily-flow.js';
 import { studyFlowRouter } from './routes/study-flow.js';
 import {
+  createStudyAssistRouter,
+  studyAssistPrepaymentGuard,
+} from './routes/study-assist.js';
+import type { StudyAssistDependencies } from './engine/study-assist.js';
+import {
   workHandoverPrepaymentGuard,
   workHandoverRouter,
 } from './routes/work-handover.js';
@@ -16,7 +21,12 @@ import {
 } from './payments/paid-routes.js';
 import { log } from './observability/logger.js';
 
-export function createApp() {
+export interface CreateAppOptions {
+  /** Test/integration seam. Production uses the configured bounded providers. */
+  studyAssistDependencies?: StudyAssistDependencies;
+}
+
+export function createApp(options: CreateAppOptions = {}) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -26,8 +36,6 @@ export function createApp() {
   // HTTPS resource instead of the container's internal HTTP connection.
   app.set('trust proxy', 1);
   // Modest body limit — descriptions are short free text.
-  app.use(express.json({ limit: '64kb' }));
-
   // Defensive: never cache responses (they may reflect a just-redacted input).
   app.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -54,6 +62,23 @@ export function createApp() {
   // protects exact resource paths. Reject all paid-route aliases before any
   // route-specific guard so no spelling variant can reach a handler unpaid.
   app.use(rejectNonCanonicalPaidRouteAliases);
+
+  // Study Assist accepts at most a 1 MiB PDF encoded as JSON base64. Only the
+  // exact paid path gets the larger transport ceiling; every other route keeps
+  // the original 64 KiB bound.
+  const studyAssistJson = express.json({ limit: '1500kb' });
+  app.use((req, res, next) => {
+    if (req.method === 'POST' && req.path === '/v1/study-assist') {
+      studyAssistJson(req, res, next);
+      return;
+    }
+    next();
+  });
+  app.use(express.json({ limit: '64kb' }));
+
+  // Material is locally parsed, screened, masked and cleared before the
+  // generic paid validator. External providers remain behind payment.
+  app.post('/v1/study-assist', studyAssistPrepaymentGuard);
 
   // Work's raw nested credential/misuse scan must run before schema parsing
   // and before x402 so a prohibited handover never produces a payment prompt.
@@ -86,6 +111,7 @@ export function createApp() {
   app.use(firstMoveRouter);
   app.use(dailyFlowRouter);
   app.use(studyFlowRouter);
+  app.use(createStudyAssistRouter(options.studyAssistDependencies));
   app.use(workHandoverRouter);
 
   // JSON body parse errors and anything uncaught.
@@ -99,6 +125,10 @@ export function createApp() {
     ) => {
       if (err.type === 'entity.parse.failed') {
         res.status(400).json({ error: 'invalid_json' });
+        return;
+      }
+      if (err.type === 'entity.too.large' || err.status === 413) {
+        res.status(413).json({ error: 'payload_too_large' });
         return;
       }
       log.error('unhandled', { message: err.message });

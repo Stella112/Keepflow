@@ -1,4 +1,4 @@
-import type { RequestHandler } from 'express';
+import type { RequestHandler, Response } from 'express';
 import type { ZodTypeAny } from 'zod';
 import { DailyFlowInputSchema } from '../schemas/daily-flow-input.js';
 import { FirstMoveInputSchema } from '../schemas/firstmove-input.js';
@@ -6,10 +6,14 @@ import { StudyFlowInputSchema } from '../schemas/study-flow-input.js';
 import { WorkHandoverInputSchema } from '../schemas/work-handover-input.js';
 import { containsSecretShape } from '../security/redact-secrets.js';
 
-export interface PaidRouteSpec {
+interface PaidRouteBase {
   method: 'POST';
   path: string;
   description: string;
+}
+
+export interface SchemaValidatedPaidRouteSpec extends PaidRouteBase {
+  bodyValidation: 'schema';
   inputSchema: ZodTypeAny;
   /** First Move intentionally accepts exposed credentials so it can produce
    * the deterministic exposure runbook after redacting them. Other services
@@ -17,11 +21,32 @@ export interface PaidRouteSpec {
   allowSecretBearingInput: boolean;
 }
 
+export interface PrevalidatedBodyPaidRouteSpec extends PaidRouteBase {
+  /** A route-specific guard has already parsed, bounded, extracted, screened,
+   * and (where necessary) cleared the original large request body. The generic
+   * validator must verify the server-only res.locals marker and must never
+   * inspect req.body for this mode. */
+  bodyValidation: 'prevalidated_body';
+}
+
+export type PaidRouteSpec =
+  | SchemaValidatedPaidRouteSpec
+  | PrevalidatedBodyPaidRouteSpec;
+
+/** Server-only response-local key used to prove large-body prevalidation ran. */
+export const PAID_ROUTE_PREVALIDATION_LOCAL =
+  'keepflowPaidRoutePrevalidatedKey' as const;
+
+function paidRouteKey(method: string, path: string): string {
+  return `${method} ${path}`;
+}
+
 export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
   {
     method: 'POST',
     path: '/v1/first-move',
     description: 'KeepFlow - First Move - Ordered Incident Recovery',
+    bodyValidation: 'schema',
     inputSchema: FirstMoveInputSchema,
     allowSecretBearingInput: true,
   },
@@ -29,6 +54,7 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     method: 'POST',
     path: '/v1/daily-flow',
     description: 'KeepFlow - Daily Flow - Constraint-Aware Meal & Movement Checklist',
+    bodyValidation: 'schema',
     inputSchema: DailyFlowInputSchema,
     allowSecretBearingInput: false,
   },
@@ -36,24 +62,48 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     method: 'POST',
     path: '/v1/study-flow',
     description: 'KeepFlow Study - Academic Execution',
+    bodyValidation: 'schema',
     inputSchema: StudyFlowInputSchema,
     allowSecretBearingInput: false,
   },
   {
     method: 'POST',
+    path: '/v1/study-assist',
+    description: 'KeepFlow Study - Grounded Learning and Verified Research Support',
+    bodyValidation: 'prevalidated_body',
+  },
+  {
+    method: 'POST',
     path: '/v1/work-handover',
     description: 'KeepFlow Work - Operational Handover',
+    bodyValidation: 'schema',
     inputSchema: WorkHandoverInputSchema,
     allowSecretBearingInput: false,
   },
 ] as const;
 
 export const PAID_ROUTE_KEYS = PAID_ROUTE_SPECS.map(
-  (route) => `${route.method} ${route.path}`,
+  (route) => paidRouteKey(route.method, route.path),
 );
 
 export function findPaidRoute(method: string, path: string): PaidRouteSpec | undefined {
   return PAID_ROUTE_SPECS.find((route) => route.method === method && route.path === path);
+}
+
+/**
+ * Mark an exact prevalidated-body route after its route-specific guard has
+ * completed. Returns false for aliases, ordinary schema routes, or unknown
+ * paths so callers can fail closed rather than accidentally blessing a body.
+ */
+export function markPaidRouteBodyPrevalidated(
+  res: Response,
+  method: string,
+  path: string,
+): boolean {
+  const route = findPaidRoute(method, path);
+  if (!route || route.bodyValidation !== 'prevalidated_body') return false;
+  res.locals[PAID_ROUTE_PREVALIDATION_LOCAL] = paidRouteKey(method, path);
+  return true;
 }
 
 function normalizePossibleAlias(path: string): string | null {
@@ -110,6 +160,16 @@ export const validatePaidRequestBeforePayment: RequestHandler = (req, res, next)
         error: 'non_canonical_paid_route',
         canonical_path: aliasedRoute.path,
       });
+      return;
+    }
+    next();
+    return;
+  }
+
+  if (route.bodyValidation === 'prevalidated_body') {
+    const expectedMarker = paidRouteKey(route.method, route.path);
+    if (res.locals[PAID_ROUTE_PREVALIDATION_LOCAL] !== expectedMarker) {
+      res.status(500).json({ error: 'paid_route_prevalidation_missing' });
       return;
     }
     next();

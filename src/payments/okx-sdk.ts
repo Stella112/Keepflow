@@ -11,7 +11,7 @@ import { PAID_ROUTE_SPECS } from './paid-routes.js';
  *
  * The SDK owns the whole payment lifecycle: it emits the 402 challenge
  * (base64 `PAYMENT-REQUIRED` header — JSON for API/SDK clients, an HTML paywall
- * only for browsers), verifies the presented `PAYMENT-SIG`, and settles on
+ * only for browsers), verifies the presented `PAYMENT-SIGNATURE`, and settles on
  * X Layer. Credentials (OKX_API_KEY / OKX_SECRET_KEY / OKX_PASSPHRASE) are read
  * from the environment by the SDK; the resource server initializes against the
  * OKX facilitator on startup, which is why real credentials are required for

@@ -1,11 +1,11 @@
 {
   "name": "keepflow-agent",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "KeepFlow lifestyle continuity companion for daily routines, incident recovery, academic execution, and operational handover.",
+  "description": "KeepFlow lifestyle continuity companion for daily routines, incident recovery, academic planning and grounded study support, and operational handover.",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -21,11 +21,12 @@
     "@okxweb3/x402-evm": "^0.2.1",
     "@okxweb3/x402-express": "^0.1.1",
     "express": "^4.21.2",
+    "unpdf": "^1.6.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "@types/node": "^22.10.5",
+    "@types/node": "^24.13.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"

@@ -44,6 +44,7 @@ describe('payment configuration', () => {
       'POST /v1/first-move',
       'POST /v1/daily-flow',
       'POST /v1/study-flow',
+      'POST /v1/study-assist',
       'POST /v1/work-handover',
     ]);
   });
