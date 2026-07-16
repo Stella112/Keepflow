@@ -37,7 +37,7 @@ export interface RedactionResult {
 // pronouns, conjunctions, prepositions, and auxiliaries, so a real seed phrase
 // never contains them, while ordinary prose is dense with them. This removes
 // the false positives that a length-only heuristic produces.
-const MNEMONIC_RE = /\b(?:[a-z]{3,8}\s+){11,}[a-z]{3,8}\b/g;
+const MNEMONIC_RE = /\b(?:[a-z]{3,8}\s+){11,}[a-z]{3,8}\b/gi;
 const NON_BIP39_COMMON = new Set([
   'the', 'and', 'are', 'for', 'was', 'were', 'with', 'you', 'your', 'that',
   'this', 'what', 'from', 'they', 'them', 'then', 'than', 'have', 'has', 'had',
@@ -54,7 +54,7 @@ function looksLikeMnemonic(run: string): boolean {
   let streak = 0;
   let best = 0;
   for (const w of words) {
-    if (NON_BIP39_COMMON.has(w)) {
+    if (NON_BIP39_COMMON.has(w.toLowerCase())) {
       streak = 0;
     } else {
       streak++;
@@ -70,7 +70,7 @@ const CARD_CANDIDATE_RE = /\b(?:\d[ -]?){13,19}\b/g;
 // A standalone 6-digit code near OTP/2FA vocabulary.
 const OTP_RE = /\b(?:otp|2fa|mfa|one[\s-]?time|verification|auth(?:entication)?)\b[^\n]{0,20}?\b(\d{6})\b/gi;
 // password: value / pwd = value
-const PASSWORD_RE = /\b(?:password|passwd|pwd|pass|pw)\b\s*[:=]\s*(\S+)/gi;
+const PASSWORD_RE = /\b(?:password|passwd|pwd|pass|pw)\b\s*[:=]\s*([^\r\n]+)/gi;
 
 function luhnValid(digits: string): boolean {
   let sum = 0;

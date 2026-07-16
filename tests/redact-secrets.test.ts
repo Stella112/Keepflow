@@ -23,6 +23,14 @@ describe('redactSecrets', () => {
     expect(r.redacted).not.toContain('sausage');
   });
 
+  it('detects an uppercase seed phrase before any model call', () => {
+    const text =
+      'LEGAL WINNER THANK YEAR WAVE SAUSAGE WORTH USEFUL LEGAL WINNER THANK YELLOW';
+    const r = redactSecrets(text);
+    expect(r.seedOrKeyDetected).toBe(true);
+    expect(r.redacted).not.toContain('SAUSAGE');
+  });
+
   it('does not flag ordinary long prose as a seed phrase', () => {
     const r = redactSecrets(
       'a timestamped report and location trail are what insurers and banks ask for later on',
@@ -58,6 +66,13 @@ describe('redactSecrets', () => {
     const r = redactSecrets('password: hunter2xyz');
     expect(r.findings.password).toBe(1);
     expect(r.redacted).not.toContain('hunter2xyz');
+  });
+
+  it('redacts a multi-word passphrase rather than leaking its tail', () => {
+    const r = redactSecrets('password: correct horse battery staple');
+    expect(r.findings.password).toBe(1);
+    expect(r.redacted).not.toContain('horse');
+    expect(r.redacted).not.toContain('staple');
   });
 
   it('leaves ordinary prose untouched', () => {

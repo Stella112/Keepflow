@@ -14,12 +14,12 @@ const OTHER_PERSON =
   '(?:his|her|their|my (?:girlfriend|boyfriend|wife|husband|ex(?:-partner)?|partner|friend|colleague|coworker|co-worker|employee|boss|kid|child|children|son|daughter|mom|mum|dad|father|mother|neighbou?r|roommate|sister|brother))';
 
 const ACCESS_VERB =
-  '(?:access|get into|log ?in ?to|hack|break into|unlock|read|open|see|track|monitor|spy on|locate|find|clone|mirror|recover)';
+  '(?:access|get into|log ?in ?to|hack|break into|unlock|read|open|see|track|monitor|spy on|locate|find|clone|mirror|recover|steal)';
 
 const MISUSE_PATTERNS: { re: RegExp; category: string }[] = [
   {
     re: new RegExp(
-      `\\b${ACCESS_VERB}\\b[^.?!]{0,40}\\b${OTHER_PERSON}'?s?\\b[^.?!]{0,30}\\b(phone|account|wallet|email|messages|device|texts|dms|location|2fa|password)\\b`,
+      `\\b${ACCESS_VERB}\\b[^.?!]{0,40}\\b${OTHER_PERSON}'?s?\\b[^.?!]{0,30}\\b(phone|account|wallet|email|gmail|messages|device|texts|dms|location|2fa|authenticator|password|seed phrase|recovery phrase|private key)\\b`,
       'i',
     ),
     category: 'third-party-targeting',

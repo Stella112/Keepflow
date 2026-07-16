@@ -111,7 +111,7 @@ export const seedKeyExposure: Runbook = {
       action:
         'Ignore anyone — including "wallet recovery" services or support DMs — who offers to recover your funds or asks for your seed phrase; never share it with anyone.',
       urgency: 'immediate',
-      priorityClass: 'safety',
+      priorityClass: 'cascade',
       condition: 'Applies whenever a seed or key has been exposed.',
       reason:
         'Fake recovery services are the standard second scam; no legitimate party ever needs your seed.',

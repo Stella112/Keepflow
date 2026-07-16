@@ -17,6 +17,10 @@ export interface GateResult {
 
 const OFFENSIVE_PATTERNS: { re: RegExp; category: string }[] = [
   {
+    re: /\b(?:give|show|tell|teach|help|walk)\b[^.?!]{0,30}\b(?:hack|break into|clone|steal|phish|bypass|crack)\b[^.?!]{0,80}\b(?:account|email|gmail|phone|wallet|authenticator|2fa|seed phrase|recovery phrase|private key)\b/i,
+    category: 'offensive-instructions',
+  },
+  {
     re: /\bhow (?:do i|to|can i)\b[^.?!]*\b(hack|break into|get into|bypass|crack|brute[\s-]?force|phish|keylog)\b/i,
     category: 'offensive-instructions',
   },
