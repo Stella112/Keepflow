@@ -3,7 +3,17 @@ import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { firstMoveRouter } from './routes/firstmove.js';
 import { dailyFlowRouter } from './routes/daily-flow.js';
+import { studyFlowRouter } from './routes/study-flow.js';
+import {
+  workHandoverPrepaymentGuard,
+  workHandoverRouter,
+} from './routes/work-handover.js';
 import { createOkxPaymentMiddleware } from './payments/okx-sdk.js';
+import {
+  findPaidRoute,
+  rejectNonCanonicalPaidRouteAliases,
+  validatePaidRequestBeforePayment,
+} from './payments/paid-routes.js';
 import { log } from './observability/logger.js';
 
 export function createApp() {
@@ -40,6 +50,20 @@ export function createApp() {
 
   app.use(healthRouter);
 
+  // Express normally accepts case and trailing-slash variants, while x402
+  // protects exact resource paths. Reject all paid-route aliases before any
+  // route-specific guard so no spelling variant can reach a handler unpaid.
+  app.use(rejectNonCanonicalPaidRouteAliases);
+
+  // Work's raw nested credential/misuse scan must run before schema parsing
+  // and before x402 so a prohibited handover never produces a payment prompt.
+  app.post('/v1/work-handover', workHandoverPrepaymentGuard);
+
+  // Reject malformed, secret-bearing, or prohibited paid requests before the
+  // customer sees an x402 challenge. Route handlers validate again as a
+  // defense-in-depth boundary after payment verification.
+  app.use(validatePaidRequestBeforePayment);
+
   // Payments (x402 via the OKX SDK). Applied only to the paid route; /health
   // and / stay free. Off by default (pass-through). When enabled but OKX creds
   // are missing, fail closed on the paid route rather than serve it for free.
@@ -49,8 +73,7 @@ export function createApp() {
       app.use(okxPayment);
     } else {
       app.use((req, res, next) => {
-        const paidRoutes = new Set(['/v1/first-move', '/v1/daily-flow']);
-        if (req.method === 'POST' && paidRoutes.has(req.path)) {
+        if (findPaidRoute(req.method, req.path)) {
           log.warn('payments.misconfigured', {});
           res.status(500).json({ error: 'payment_misconfigured' });
           return;
@@ -62,6 +85,8 @@ export function createApp() {
 
   app.use(firstMoveRouter);
   app.use(dailyFlowRouter);
+  app.use(studyFlowRouter);
+  app.use(workHandoverRouter);
 
   // JSON body parse errors and anything uncaught.
   app.use(

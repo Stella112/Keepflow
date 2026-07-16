@@ -57,7 +57,7 @@ export function loadConfig(): Config {
       asp: 'KeepFlow',
       name: 'KeepFlow - Lifestyle Continuity Companion',
       tagline: 'The next safe step for everyday routines and life disruptions.',
-      version: '0.1.0',
+      version: '0.2.0',
     },
     classifier: {
       llmEnabled: Boolean(apiKey),

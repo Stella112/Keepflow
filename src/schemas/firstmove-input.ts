@@ -30,12 +30,6 @@ export const FirstMoveInputSchema = z
       .strict()
       .optional(),
 
-    /**
-     * Optional caller-supplied idempotency key. When a paid request is
-     * replayed (e.g. after a downstream timeout) the same key returns the same
-     * result without re-charging. If absent, one is derived from the payload.
-     */
-    idempotencyKey: z.string().trim().min(1).max(200).optional(),
   })
   .strict();
 

@@ -22,7 +22,9 @@ export interface FirstMoveDeps {
 }
 
 export function createFirstMoveRouter(deps: FirstMoveDeps): Router {
-  const router = Router();
+  // Payment middleware matches canonical paths. Keep the paid handler equally
+  // strict so case or trailing-slash aliases can never bypass x402.
+  const router = Router({ caseSensitive: true, strict: true });
   const { classifier } = deps;
 
   router.post('/v1/first-move', async (req: Request, res: Response) => {

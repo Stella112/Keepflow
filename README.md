@@ -6,10 +6,12 @@ KeepFlow is a **Lifestyle Continuity Companion**: an Agent Service Provider
 (ASP) that helps people keep moving through everyday routines and disruptive
 moments with a clear, safe next step.
 
-It currently exposes two services:
+It currently exposes four paid, stateless services:
 
-- **First Move - Ordered Incident Recovery**
 - **Daily Flow - Constraint-Aware Meal & Movement Checklist**
+- **First Move - Ordered Incident Recovery**
+- **KeepFlow Study - Academic Execution**
+- **KeepFlow Work - Operational Handover**
 
 ---
 
@@ -104,6 +106,48 @@ curl -sX POST localhost:8080/v1/daily-flow \
   }'
 ```
 
+## KeepFlow Study
+
+KeepFlow Study converts declared academic tasks, deadlines, dependencies, and
+real availability windows into an ordered execution plan. It schedules only
+inside caller-provided time, keeps impossible workloads visible, and attaches a
+definition and evidence of done to each session. It supports international IANA
+timezones, Unicode content, limited internet/device access, accessibility needs,
+and pressure-aware load reduction.
+
+It organizes legitimate study work; it does not generate assessed submissions,
+take live assessments, impersonate learners, invent citations, or promise
+grades. Academic-integrity requests are redirected to permitted preparation,
+and an immediate safety concern pauses study scheduling.
+
+Endpoint: `POST /v1/study-flow`
+
+The session design follows evidence-based study principles such as spacing,
+retrieval practice, and using checks to identify what needs more study, as
+summarized by the US Institute of Education Sciences:
+https://ies.ed.gov/ncee/wwc/PracticeGuide/1
+
+## KeepFlow Work
+
+KeepFlow Work turns caller-provided operational state into a structured
+handover: dependency-aware priorities, ownership and responsibility maps,
+blocker/dependency/access/risk/decision registers, a handover checklist,
+unknowns, and escalation triggers. Missing owners, dates, status, evidence, or
+authorization remain explicitly unknown rather than being invented.
+
+Credentials and access tokens are rejected before payment. Requests to share
+credentials, bypass controls, obtain unauthorized access, or conceal evidence
+are blocked. Legal, HR, medical, financial-execution, regulated, and
+safety-critical content is held behind an authorized-review gate and does not
+receive invented operational instructions.
+
+Endpoint: `POST /v1/work-handover`
+
+The handover model reflects the UK Health and Safety Executive's core principle
+that reliable handover requires preparation, task-relevant written and verbal
+exchange, and cross-checking by the recipient:
+https://www.hse.gov.uk/humanfactors/topics/shift-handover.htm
+
 ## How First Move works (hybrid engine)
 
 ```
@@ -171,10 +215,12 @@ curl -sX POST localhost:8080/v1/first-move \
 ## Payments (x402 via the OKX Payment SDK)
 
 Uses the official **`@okxweb3/x402-express`** SDK (`src/payments/okx-sdk.ts`),
-wired in `app.ts` to protect both `POST /v1/first-move` and
-`POST /v1/daily-flow` (`/` and `/health` stay free). `PAYMENTS_ENABLED` defaults
-to `false` (unpaid access for local dev). Both paid calls use the configured
-price, currently `$0.05` by default.
+wired in `app.ts` to protect `POST /v1/daily-flow`, `POST /v1/first-move`,
+`POST /v1/study-flow`, and `POST /v1/work-handover` (`/` and `/health` stay
+free). `PAYMENTS_ENABLED` defaults to `false` for local development. Every paid
+call uses the configured price, currently `$0.05` by default. Strict input and
+credential checks run before the payment challenge, so malformed or sensitive
+requests are rejected without asking the customer to pay.
 
 When enabled, the SDK owns the whole payment lifecycle: it emits the **HTTP 402**
 challenge (base64 `PAYMENT-REQUIRED` header — JSON for API/SDK clients, an HTML
@@ -198,17 +244,14 @@ register/list the ASP on OKX.AI via Onchain OS (Agentic Wallet).
 keepflow/
 ├── src/
 │   ├── server.ts, app.ts, config.ts
-│   ├── routes/        health.ts, firstmove.ts
-│   ├── schemas/       firstmove-input.ts, firstmove-output.ts
-│   ├── security/      redact-secrets.ts, danger-gate.ts, misuse-gate.ts
-│   ├── engine/        classify-incident, model-classifier, order-actions,
-│   │                  build-cascade, build-plan, validate-plan, repair-plan,
-│   │                  evaluate-plan
-│   ├── playbooks/     stolen-phone, account-takeover, lost-authenticator,
-│   │                  seed-key-exposure, types, index
-│   ├── payments/      okx-x402.ts (stub), result-cache.ts
-│   └── observability/ logger.ts
-├── tests/
+│   ├── routes/        health, firstmove, daily-flow, study-flow, work-handover
+│   ├── schemas/       strict input/output contracts for all four services
+│   ├── security/      secret redaction plus danger and misuse gates
+│   ├── engine/        deterministic planning, validation, repair, and evaluation
+│   ├── playbooks/     versioned digital-incident recovery runbooks
+│   ├── payments/      OKX x402 middleware and central paid-route registry
+│   └── observability/ privacy-safe structured logging
+├── tests/             unit, adversarial, and full HTTP-stack coverage
 ├── Dockerfile
 └── README.md
 ```

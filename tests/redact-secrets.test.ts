@@ -80,4 +80,44 @@ describe('redactSecrets', () => {
     expect(r.redactionApplied).toBe(false);
     expect(containsSecretShape(r.redacted)).toBe(false);
   });
+
+  it('redacts labeled API keys and distinctive service tokens', () => {
+    const labeled = redactSecrets('api_key=live_customer_service_token_123456789');
+    const openAiStyle = redactSecrets(`token sk-${'a'.repeat(32)}`);
+    expect(labeled.findings.apiToken).toBe(1);
+    expect(labeled.redacted).not.toContain('live_customer');
+    expect(openAiStyle.findings.apiToken).toBe(1);
+    expect(openAiStyle.redacted).not.toContain('sk-');
+  });
+
+  it('redacts bearer credentials without removing the label', () => {
+    const result = redactSecrets('Authorization: Bearer abcdefghijklmnopqrstuvwxyz.123456');
+    expect(result.findings.bearerToken).toBe(1);
+    expect(result.redacted).toContain('Bearer [REDACTED_SECRET]');
+    expect(result.redacted).not.toContain('abcdefghijklmnopqrstuvwxyz');
+  });
+
+  it('redacts complete SSH private-key blocks', () => {
+    const key = [
+      '-----BEGIN OPENSSH PRIVATE KEY-----',
+      'b3BlbnNzaC1rZXktdjEAAAAAEXAMPLEPRIVATEKEYMATERIAL',
+      '-----END OPENSSH PRIVATE KEY-----',
+    ].join('\n');
+    const result = redactSecrets(`handover note\n${key}\ndo not share`);
+    expect(result.findings.sshPrivateKey).toBe(1);
+    expect(result.redacted).not.toContain('PRIVATEKEYMATERIAL');
+    expect(result.redacted).toContain(REDACTION_PLACEHOLDER);
+  });
+
+  it('redacts credential-bearing connection strings and provider tokens', () => {
+    const slackToken = ['xox', 'b-1234567890-', 'abcdefghijklmnop'].join('');
+    const result = redactSecrets(
+      'database=postgresql://handover_user:super-secret@db.example.test/operations ' +
+      `slack=${slackToken}`,
+    );
+    expect(result.findings.connectionString).toBe(1);
+    expect(result.findings.apiToken).toBe(1);
+    expect(result.redacted).not.toContain('super-secret');
+    expect(result.redacted).not.toContain(slackToken);
+  });
 });

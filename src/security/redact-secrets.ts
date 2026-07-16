@@ -25,6 +25,10 @@ export interface RedactionResult {
     cardNumber: number;
     otpCode: number;
     password: number;
+    apiToken: number;
+    bearerToken: number;
+    sshPrivateKey: number;
+    connectionString: number;
   };
   /** True if a seed phrase or private key was detected — diverts to the
    *  deterministic exposure runbook, skipping the model entirely. */
@@ -71,6 +75,18 @@ const CARD_CANDIDATE_RE = /\b(?:\d[ -]?){13,19}\b/g;
 const OTP_RE = /\b(?:otp|2fa|mfa|one[\s-]?time|verification|auth(?:entication)?)\b[^\n]{0,20}?\b(\d{6})\b/gi;
 // password: value / pwd = value
 const PASSWORD_RE = /\b(?:password|passwd|pwd|pass|pw)\b\s*[:=]\s*([^\r\n]+)/gi;
+// Common service credentials. These deliberately require either an explicit
+// credential label or a distinctive token format to avoid redacting ordinary
+// identifiers and prose.
+const API_TOKEN_LABEL_RE =
+  /\b(?:api[\s_-]?key|api[\s_-]?token|access[\s_-]?token|secret[\s_-]?key|client[\s_-]?secret)\b\s*[:=]\s*([^\s,;]+)/gi;
+const DISTINCTIVE_TOKEN_RE =
+  /\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AKIA[A-Z0-9]{16}|eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,})\b/g;
+const BEARER_TOKEN_RE = /\bBearer\s+([A-Za-z0-9._~+/=-]{16,})/gi;
+const SSH_PRIVATE_KEY_RE =
+  /-----BEGIN (?:ENCRYPTED|OPENSSH|RSA|EC|DSA) PRIVATE KEY-----[\s\S]*?-----END (?:ENCRYPTED|OPENSSH|RSA|EC|DSA) PRIVATE KEY-----/gi;
+const CONNECTION_STRING_RE =
+  /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqps?):\/\/[^\s/@:]+:[^\s/@]+@[^\s]+/gi;
 
 function luhnValid(digits: string): boolean {
   let sum = 0;
@@ -95,6 +111,10 @@ export function redactSecrets(input: string): RedactionResult {
     cardNumber: 0,
     otpCode: 0,
     password: 0,
+    apiToken: 0,
+    bearerToken: 0,
+    sshPrivateKey: 0,
+    connectionString: 0,
   };
 
   let out = input;
@@ -129,12 +149,41 @@ export function redactSecrets(input: string): RedactionResult {
     return full.replace(value, REDACTION_PLACEHOLDER);
   });
 
+  out = out.replace(SSH_PRIVATE_KEY_RE, () => {
+    findings.sshPrivateKey++;
+    return REDACTION_PLACEHOLDER;
+  });
+
+  out = out.replace(BEARER_TOKEN_RE, (full, value) => {
+    findings.bearerToken++;
+    return full.replace(value, REDACTION_PLACEHOLDER);
+  });
+
+  out = out.replace(API_TOKEN_LABEL_RE, (full, value) => {
+    findings.apiToken++;
+    return full.replace(value, REDACTION_PLACEHOLDER);
+  });
+
+  out = out.replace(DISTINCTIVE_TOKEN_RE, () => {
+    findings.apiToken++;
+    return REDACTION_PLACEHOLDER;
+  });
+
+  out = out.replace(CONNECTION_STRING_RE, () => {
+    findings.connectionString++;
+    return REDACTION_PLACEHOLDER;
+  });
+
   const total =
     findings.mnemonic +
     findings.privateKeyHex +
     findings.cardNumber +
     findings.otpCode +
-    findings.password;
+    findings.password +
+    findings.apiToken +
+    findings.bearerToken +
+    findings.sshPrivateKey +
+    findings.connectionString;
 
   return {
     redacted: out,

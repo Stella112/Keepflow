@@ -7,7 +7,8 @@ import { DailyFlowInputSchema } from '../schemas/daily-flow-input.js';
  * Daily Flow is deterministic and stateless. Payment is handled upstream by
  * the shared OKX x402 middleware, exactly like First Move.
  */
-export const dailyFlowRouter = Router();
+// Paid routes must match the canonical x402 path exactly.
+export const dailyFlowRouter = Router({ caseSensitive: true, strict: true });
 
 dailyFlowRouter.post('/v1/daily-flow', (req: Request, res: Response) => {
   const started = Date.now();

@@ -4,6 +4,7 @@ import { ExactEvmScheme } from '@okxweb3/x402-evm/exact/server';
 import { OKXFacilitatorClient } from '@okxweb3/x402-core';
 import type { Config } from '../config.js';
 import { log } from '../observability/logger.js';
+import { PAID_ROUTE_SPECS } from './paid-routes.js';
 
 /**
  * OKX x402 pay-per-call, via the official @okxweb3/x402-express SDK.
@@ -34,29 +35,24 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
     new ExactEvmScheme(),
   );
 
+  const paidRoutes = Object.fromEntries(
+    PAID_ROUTE_SPECS.map((route) => [
+      `${route.method} ${route.path}`,
+      {
+        accepts: {
+          scheme: 'exact' as const,
+          price: config.payments.priceUsd,
+          network,
+          payTo: config.payments.payToAddress!,
+        },
+        description: route.description,
+        mimeType: 'application/json' as const,
+      },
+    ]),
+  );
+
   const middleware = paymentMiddleware(
-    {
-      'POST /v1/first-move': {
-        accepts: {
-          scheme: 'exact',
-          price: config.payments.priceUsd,
-          network,
-          payTo: config.payments.payToAddress,
-        },
-        description: `${config.service.asp} - First Move - Ordered Incident Recovery`,
-        mimeType: 'application/json',
-      },
-      'POST /v1/daily-flow': {
-        accepts: {
-          scheme: 'exact',
-          price: config.payments.priceUsd,
-          network,
-          payTo: config.payments.payToAddress,
-        },
-        description: `${config.service.asp} - Daily Flow - Constraint-Aware Meal & Movement Checklist`,
-        mimeType: 'application/json',
-      },
-    },
+    paidRoutes,
     resourceServer,
     // No browser paywall branding, no custom HTML — machine-to-machine ASP.
     undefined,
@@ -70,6 +66,7 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
     network: config.payments.network,
     price: config.payments.priceUsd,
     payTo: config.payments.payToAddress,
+    protected_routes: PAID_ROUTE_SPECS.length,
   });
 
   return middleware as unknown as RequestHandler;

@@ -1,8 +1,8 @@
 {
   "name": "keepflow-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "KeepFlow lifestyle continuity companion: Daily Flow wellness planning and First Move incident recovery.",
+  "description": "KeepFlow lifestyle continuity companion for daily routines, incident recovery, academic execution, and operational handover.",
   "type": "module",
   "engines": {
     "node": ">=20"
