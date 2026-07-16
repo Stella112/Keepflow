@@ -76,7 +76,7 @@ export function loadConfig(): Config {
         process.env.PAY_TO_ADDRESS?.trim() ||
         process.env.X402_PAY_TO_ADDRESS?.trim() ||
         undefined,
-      priceUsd: process.env.X402_PRICE_USD?.trim() || '$0.20',
+      priceUsd: process.env.X402_PRICE_USD?.trim() || '$0.05',
       // CAIP-2 network id. X Layer mainnet = eip155:196, testnet = eip155:1952.
       network: process.env.X402_NETWORK?.trim() || 'eip155:196',
       okxConfigured: Boolean(
