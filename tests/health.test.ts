@@ -17,9 +17,34 @@ async function withApp<T>(run: (origin: string) => Promise<T>): Promise<T> {
 }
 
 describe('KeepFlow service descriptors', () => {
-  it('advertises Study Assist as part of Study while retaining four core services', async () => {
+  it('serves the branded landing page and supplied logo without weakening its headers', async () => {
     await withApp(async (origin) => {
       const response = await fetch(`${origin}/`);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(body).toContain('When life shifts,');
+      expect(body).toContain('DAILY FLOW');
+      expect(body).toContain('FIRST MOVE');
+      expect(body).toContain('KEEPFLOW STUDY');
+      expect(body).toContain('KEEPFLOW WORK');
+      expect(body).toContain('Calendar Reminder Pack');
+      expect(body).toContain('/assets/keepflow-logo.jpeg');
+      expect(body).toContain('0.05 USDT');
+
+      const logo = await fetch(`${origin}/assets/keepflow-logo.jpeg`);
+      expect(logo.status).toBe(200);
+      expect(logo.headers.get('content-type')).toContain('image/jpeg');
+      expect(Number(logo.headers.get('content-length'))).toBeGreaterThan(20_000);
+    });
+  });
+
+  it('advertises Study Assist as part of Study while retaining four core services', async () => {
+    await withApp(async (origin) => {
+      const response = await fetch(`${origin}/service.json`);
       const body = await response.json() as {
         version: string;
         study_tutor_mode: string;
@@ -29,7 +54,7 @@ describe('KeepFlow service descriptors', () => {
       };
 
       expect(response.status).toBe(200);
-      expect(body.version).toBe('0.4.0');
+      expect(body.version).toBe('0.5.0');
       expect(body.endpoints.study_assist).toContain('POST /v1/study-assist');
       expect(body.endpoints.reminder_pack).toContain('POST /v1/reminder-pack');
       expect(body.companion_capabilities).toContain(
@@ -63,7 +88,7 @@ describe('KeepFlow service descriptors', () => {
       expect(response.status).toBe(200);
       expect(body).toMatchObject({
         status: 'ok',
-        version: '0.4.0',
+        version: '0.5.0',
         service_count: 4,
         paid_capability_count: 6,
         reminder_delivery_mode: 'calendar_import',

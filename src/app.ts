@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'node:path';
 import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { firstMoveRouter } from './routes/firstmove.js';
@@ -39,6 +40,14 @@ export function createApp(options: CreateAppOptions = {}) {
   // X-Forwarded-Proto, so the OKX x402 challenge binds to the caller-facing
   // HTTPS resource instead of the container's internal HTTP connection.
   app.set('trust proxy', 1);
+
+  // Landing-page assets are the only cacheable public responses. API output
+  // remains no-store below because it can reflect caller-provided context.
+  app.use('/assets', express.static(path.resolve(process.cwd(), 'public'), {
+    dotfiles: 'deny',
+    index: false,
+    maxAge: '1h',
+  }));
   // Modest body limit — descriptions are short free text.
   // Defensive: never cache responses (they may reflect a just-redacted input).
   app.use((_req, res, next) => {

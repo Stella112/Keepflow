@@ -14,6 +14,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --no-audit --no-fund
 COPY --from=build /app/dist ./dist
+COPY public ./public
 EXPOSE 8080
 # Simple healthcheck against the /health endpoint.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

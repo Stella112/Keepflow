@@ -6,6 +6,10 @@ KeepFlow is a **Lifestyle Continuity Companion**: an Agent Service Provider
 (ASP) that helps people keep moving through everyday routines and disruptive
 moments with a clear, safe next step.
 
+The public root, `GET /`, is a responsive product landing page. The original
+machine-readable service descriptor is available at `GET /service.json`, while
+`GET /health` remains the minimal operational health response.
+
 It currently exposes four core paid, stateless services through six endpoints.
 Reminder Pack is a cross-service companion capability, not a fifth core service:
 

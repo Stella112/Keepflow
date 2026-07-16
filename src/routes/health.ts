@@ -1,12 +1,11 @@
 import { Router } from 'express';
 import { config } from '../config.js';
+import { landingPageHtml } from '../landing-page.js';
 
 export const healthRouter = Router();
 
-// Root landing — a small service descriptor so opening the bare domain in a
-// browser shows what this is and how to call it, instead of "Cannot GET /".
-healthRouter.get('/', (_req, res) => {
-  res.json({
+function buildServiceDescriptor() {
+  return {
     asp: config.service.asp,
     service: config.service.name,
     tagline: config.service.tagline,
@@ -23,6 +22,7 @@ healthRouter.get('/', (_req, res) => {
       'any service into importable calendar alerts without storing reminder data.',
     endpoints: {
       health: 'GET /health',
+      service_descriptor: 'GET /service.json',
       first_move: 'POST /v1/first-move  (JSON body: { "description": "..." })',
       daily_flow: 'POST /v1/daily-flow  (JSON adult profile, constraints, and health screen)',
       study_flow: 'POST /v1/study-flow  (JSON academic goal, tasks, availability, and constraints)',
@@ -40,9 +40,7 @@ healthRouter.get('/', (_req, res) => {
       },
       { priority: 4, name: 'KeepFlow Work - Operational Handover' },
     ],
-    companion_capabilities: [
-      'stateless calendar reminder packs with importable alerts',
-    ],
+    companion_capabilities: ['stateless calendar reminder packs with importable alerts'],
     first_move_supported_incidents: [
       'stolen or lost phone',
       'account takeover',
@@ -50,7 +48,22 @@ healthRouter.get('/', (_req, res) => {
       'possible seed phrase or private-key exposure',
     ],
     source: 'https://github.com/Stella112/Keepflow',
-  });
+  };
+}
+
+healthRouter.get('/', (_req, res) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  );
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.status(200).type('html').send(landingPageHtml);
+});
+
+healthRouter.get('/service.json', (_req, res) => {
+  res.json(buildServiceDescriptor());
 });
 
 healthRouter.get('/health', (_req, res) => {
