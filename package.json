@@ -2,7 +2,7 @@
   "name": "keepflow-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "KeepFlow — First Move: ordered, cascade-aware digital-incident triage. When life breaks, keep it moving.",
+  "description": "KeepFlow agent services: First Move incident recovery and Daily Flow constraint-aware adult wellness planning.",
   "type": "module",
   "engines": {
     "node": ">=20"

@@ -46,6 +46,16 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
         description: `${config.service.asp} — ${config.service.name}`,
         mimeType: 'application/json',
       },
+      'POST /v1/daily-flow': {
+        accepts: {
+          scheme: 'exact',
+          price: config.payments.priceUsd,
+          network,
+          payTo: config.payments.payToAddress,
+        },
+        description: `${config.service.asp} - Daily Flow - Constraint-Aware Meal & Movement Checklist`,
+        mimeType: 'application/json',
+      },
     },
     resourceServer,
     // No browser paywall branding, no custom HTML — machine-to-machine ASP.

@@ -6,7 +6,10 @@ KeepFlow is an Agent Service Provider (ASP) that produces structured recovery
 plans when a digital-access asset — a phone, an account, a second factor, or a
 crypto key — is disrupted.
 
-Its first service is **First Move — Ordered Incident Recovery**.
+It currently exposes two services:
+
+- **First Move - Ordered Incident Recovery**
+- **Daily Flow - Constraint-Aware Meal & Movement Checklist**
 
 ---
 
@@ -33,7 +36,75 @@ questions. It never invents a cascade to satisfy the schema.
 **Defensive, procedural guidance only.** First Move never requests or stores
 passwords, seed phrases, private keys, 2FA codes, or full card numbers.
 
-## How it works (hybrid engine)
+## Daily Flow
+
+Daily Flow turns a caller's adult wellness goal and real-world constraints into
+a one-day meal-and-movement checklist. It supports gradual loss, gradual gain,
+and maintenance. It is deliberately not a disease-treatment or crash-diet
+service.
+
+International food-context packs cover representative major countries across
+inhabited continents:
+
+- Africa: Nigeria, Ghana, Kenya, South Africa, Egypt, Ethiopia
+- Asia: China, India, Japan, Indonesia, the Philippines, Vietnam
+- Europe: United Kingdom, France, Germany, Italy, Spain, Poland
+- North America: United States, Canada, Mexico
+- South America: Brazil, Argentina, Colombia, Peru
+- Oceania: Australia, New Zealand
+- Middle East and custom contexts are also supported
+
+The context pack preserves local terminology, but `available_foods` remains the
+source of truth. Daily Flow never invents a local dish, price, availability, or
+nutrient value. Every suggested food must come from the caller's supplied list
+after allergy, intolerance, and avoidance exclusions.
+
+Safety gates return `professional_review` without calorie, meal, or movement
+prescriptions for callers under 18, pregnancy, breastfeeding, eating-disorder
+history/recovery, unexplained weight change, active allergy symptoms, or a
+declared serious kidney, liver, heart, or metabolic condition. Allergy output
+always requires label and cross-contact checks and never certifies a meal as
+allergy-safe. The service is stateless and does not store health data.
+
+The design is grounded in authoritative guidance: WHO says a healthy diet's
+exact composition varies with individual characteristics, cultural context,
+locally available foods, and customs; FAO maintains country-specific food-based
+dietary guidelines; the China pack is informed by FAO's record of the 2022
+Dietary Guidelines for Chinese. The adult-only and pregnancy/breastfeeding gates
+follow the scope restrictions used by the US NIDDK Body Weight Planner.
+
+Research references:
+
+- WHO healthy diet: https://www.who.int/news-room/fact-sheets/detail/healthy-diet
+- FAO dietary-guidelines repository: https://www.fao.org/nutrition/education/dietary-guidelines/home/en/
+- FAO China dietary-guidelines profile: https://www.fao.org/nutrition/education/food-dietary-guidelines/regions/china/en/
+- NIDDK Body Weight Planner: https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner
+- FDA food-allergy resources: https://www.fda.gov/food/food-labeling-nutrition/food-allergies
+
+Call Daily Flow locally:
+
+```bash
+curl -sX POST localhost:8080/v1/daily-flow \
+  -H 'content-type: application/json' \
+  -d '{
+    "goal":"maintain",
+    "profile":{
+      "age":32,
+      "height_cm":168,
+      "weight_kg":68,
+      "sex_for_energy_equation":"female",
+      "activity_level":"lightly_active"
+    },
+    "constraints":{
+      "food_context_pack":"china",
+      "allergies":["peanut"],
+      "available_foods":["rice","tofu","bok choy","egg","orange","sweet potato"]
+    },
+    "health_screen":{}
+  }'
+```
+
+## How First Move works (hybrid engine)
 
 ```
 request → validate input → redact secrets → danger/misuse gate →
@@ -100,8 +171,10 @@ curl -sX POST localhost:8080/v1/first-move \
 ## Payments (x402 via the OKX Payment SDK)
 
 Uses the official **`@okxweb3/x402-express`** SDK (`src/payments/okx-sdk.ts`),
-wired in `app.ts` to protect `POST /v1/first-move` only (`/` and `/health` stay
-free). `PAYMENTS_ENABLED` defaults to `false` (unpaid access for local dev).
+wired in `app.ts` to protect both `POST /v1/first-move` and
+`POST /v1/daily-flow` (`/` and `/health` stay free). `PAYMENTS_ENABLED` defaults
+to `false` (unpaid access for local dev). Both paid calls use the configured
+price, currently `$0.05` by default.
 
 When enabled, the SDK owns the whole payment lifecycle: it emits the **HTTP 402**
 challenge (base64 `PAYMENT-REQUIRED` header — JSON for API/SDK clients, an HTML

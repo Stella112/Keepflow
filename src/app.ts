@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { firstMoveRouter } from './routes/firstmove.js';
+import { dailyFlowRouter } from './routes/daily-flow.js';
 import { createOkxPaymentMiddleware } from './payments/okx-sdk.js';
 import { log } from './observability/logger.js';
 
@@ -48,7 +49,8 @@ export function createApp() {
       app.use(okxPayment);
     } else {
       app.use((req, res, next) => {
-        if (req.method === 'POST' && req.path === '/v1/first-move') {
+        const paidRoutes = new Set(['/v1/first-move', '/v1/daily-flow']);
+        if (req.method === 'POST' && paidRoutes.has(req.path)) {
           log.warn('payments.misconfigured', {});
           res.status(500).json({ error: 'payment_misconfigured' });
           return;
@@ -59,6 +61,7 @@ export function createApp() {
   }
 
   app.use(firstMoveRouter);
+  app.use(dailyFlowRouter);
 
   // JSON body parse errors and anything uncaught.
   app.use(

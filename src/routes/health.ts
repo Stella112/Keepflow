@@ -8,19 +8,23 @@ export const healthRouter = Router();
 healthRouter.get('/', (_req, res) => {
   res.json({
     asp: config.service.asp,
-    service: config.service.name,
+    service: 'KeepFlow Agent Services',
     tagline: config.service.tagline,
     version: config.service.version,
     description:
-      'Ordered, cascade-aware digital-incident triage. Describe what went ' +
-      'wrong and receive a structured recovery plan: what to do first, what ' +
-      'it could compromise next, what to preserve, and what remains unknown. ' +
-      'Procedural defensive guidance only — never asks for passwords, seed ' +
-      'phrases, private keys, 2FA codes, or full card numbers.',
+      'Two stateless agent services: First Move provides ordered, cascade-aware ' +
+      'digital-incident recovery; Daily Flow provides an adult general-wellness ' +
+      'meal and movement checklist constrained by the caller-provided foods, ' +
+      'allergies, access, budget preference, and international food context.',
     endpoints: {
       health: 'GET /health',
       first_move: 'POST /v1/first-move  (JSON body: { "description": "..." })',
+      daily_flow: 'POST /v1/daily-flow  (JSON adult profile, constraints, and health screen)',
     },
+    services: [
+      'First Move - Ordered Incident Recovery',
+      'Daily Flow - Constraint-Aware Meal & Movement Checklist',
+    ],
     supported_incidents: [
       'stolen or lost phone',
       'account takeover',
