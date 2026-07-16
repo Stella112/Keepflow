@@ -30,6 +30,24 @@ const PRODUCE_TERMS = [
   'cucumber', 'banana', 'orange', 'apple', 'mango', 'papaya', 'berry', 'berries',
 ];
 
+const TERRESTRIAL_MEAT_TERMS = [
+  'beef', 'chicken', 'turkey', 'pork', 'lamb', 'mutton', 'goat', 'bacon',
+  'sausage', 'ham', 'meat',
+];
+const SEAFOOD_TERMS = [
+  'fish', 'salmon', 'tuna', 'sardine', 'shellfish', 'shrimp', 'prawn', 'crab',
+  'lobster',
+];
+const VEGAN_EXTRAS = [
+  'egg', 'milk', 'dairy', 'cheese', 'yogurt', 'yoghurt', 'whey', 'casein',
+  'butter', 'ghee', 'honey',
+];
+const NO_COOK_UNUSABLE_TERMS = [
+  'raw chicken', 'raw turkey', 'raw pork', 'raw beef', 'raw fish',
+  'uncooked chicken', 'uncooked turkey', 'uncooked pork', 'uncooked beef',
+  'uncooked fish', 'dry rice', 'uncooked rice', 'dry pasta', 'uncooked pasta',
+];
+
 const ALLERGEN_SYNONYMS: Record<string, string[]> = {
   peanut: ['peanut', 'groundnut'],
   groundnut: ['peanut', 'groundnut'],
@@ -64,6 +82,15 @@ function foodMatches(food: string, terms: string[]): boolean {
 function category(food: string, terms: string[]): boolean {
   const name = normalized(food);
   return terms.some((term) => name.includes(term));
+}
+
+function dietPatternTerms(pattern: DailyFlowInput['constraints']['diet_pattern']): string[] {
+  if (pattern === 'vegetarian') return [...TERRESTRIAL_MEAT_TERMS, ...SEAFOOD_TERMS];
+  if (pattern === 'vegan') {
+    return [...TERRESTRIAL_MEAT_TERMS, ...SEAFOOD_TERMS, ...VEGAN_EXTRAS];
+  }
+  if (pattern === 'pescatarian') return TERRESTRIAL_MEAT_TERMS;
+  return [];
 }
 
 function rounded50(value: number): number {
@@ -126,7 +153,11 @@ function buildMeals(foods: string[], input: DailyFlowInput): DailyFlowOutput['me
   const reasons = [
     `uses only caller-provided foods after declared exclusions`,
     `matches ${input.constraints.food_context_pack} food context`,
+    `respects the declared ${input.constraints.diet_pattern} diet pattern`,
     `respects ${input.constraints.budget} budget preference without assuming local prices`,
+    input.constraints.cooking_access === 'none'
+      ? 'requires ready-to-eat forms because no cooking access was declared'
+      : `fits ${input.constraints.cooking_access} cooking access`,
   ];
 
   return {
@@ -196,8 +227,14 @@ export function buildDailyFlow(input: DailyFlowInput): DailyFlowOutput {
     ...input.constraints.intolerances,
     ...input.constraints.avoid,
   ];
+  const patternTerms = dietPatternTerms(input.constraints.diet_pattern);
+  const noCookTerms = input.constraints.cooking_access === 'none'
+    ? NO_COOK_UNUSABLE_TERMS
+    : [];
   const excludedFoods = input.constraints.available_foods.filter((food) =>
-    allExcluded.some((item) => foodMatches(food, termsForExclusion(item))),
+    allExcluded.some((item) => foodMatches(food, termsForExclusion(item))) ||
+    foodMatches(food, patternTerms) ||
+    foodMatches(food, noCookTerms),
   );
   const allowedFoods = input.constraints.available_foods.filter(
     (food) => !excludedFoods.includes(food),
@@ -208,9 +245,13 @@ export function buildDailyFlow(input: DailyFlowInput): DailyFlowOutput {
     ((input.goal === 'gradual_loss' && input.profile.target_weight_kg >= input.profile.weight_kg) ||
       (input.goal === 'gradual_gain' && input.profile.target_weight_kg <= input.profile.weight_kg));
   const insufficientFoods = allowedFoods.length < 3;
+  const customDietNeedsReview = input.constraints.diet_pattern === 'custom';
   const eligibility: DailyFlowOutput['eligibility'] = flags.length
     ? 'professional_review'
-    : !input.profile.sex_for_energy_equation || targetConflict || insufficientFoods
+    : !input.profile.sex_for_energy_equation ||
+        targetConflict ||
+        insufficientFoods ||
+        customDietNeedsReview
       ? 'general_only'
       : 'personalized';
 
@@ -221,6 +262,12 @@ export function buildDailyFlow(input: DailyFlowInput): DailyFlowOutput {
   }
   if (targetConflict) questions.push('Is the goal or target weight entered correctly?');
   if (insufficientFoods) questions.push('Which additional foods are actually available after exclusions?');
+  if (customDietNeedsReview) {
+    questions.push('Which specific foods or ingredients must the custom diet pattern exclude?');
+  }
+  if (noCookTerms.length && excludedFoods.some((food) => foodMatches(food, noCookTerms))) {
+    questions.push('Which additional ready-to-eat foods are available without cooking?');
+  }
   if (input.constraints.food_context_pack === 'custom') {
     questions.push('Which country or cuisine should guide food terminology?');
   }
@@ -341,8 +388,9 @@ export function buildDailyFlow(input: DailyFlowInput): DailyFlowOutput {
     constraint_trace: [
       { constraint: `goal:${input.goal}`, effect: 'selected a gradual, non-extreme checklist mode' },
       { constraint: `food_context:${input.constraints.food_context_pack}`, effect: 'used caller-provided foods within the selected terminology context' },
+      { constraint: `diet_pattern:${input.constraints.diet_pattern}`, effect: 'removed recognized conflicts before building meal combinations' },
       { constraint: `budget:${input.constraints.budget}`, effect: 'avoided assuming prices; caller should choose affordable listed options locally' },
-      { constraint: `cooking:${input.constraints.cooking_access}`, effect: 'kept meal structures simple and ingredient-based' },
+      { constraint: `cooking:${input.constraints.cooking_access}`, effect: input.constraints.cooking_access === 'none' ? 'removed foods explicitly marked raw, dry, or uncooked that require cooking' : 'kept meal structures simple and ingredient-based' },
       ...excludedFoods.map((food) => ({ constraint: `excluded:${food}`, effect: 'removed from every meal suggestion' })),
     ],
     professional_review_flags: [],

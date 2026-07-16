@@ -116,6 +116,50 @@ describe('Daily Flow international constraint engine', () => {
     expect(suggestedFoods(output)).not.toContain('milk');
   });
 
+  it('enforces vegetarian and vegan patterns before building meals', () => {
+    const vegetarian = buildDailyFlow(makeInput({
+      constraints: {
+        diet_pattern: 'vegetarian',
+        available_foods: ['rice', 'lentils', 'spinach', 'chicken', 'mango', 'roti'],
+      },
+    }));
+    const vegan = buildDailyFlow(makeInput({
+      constraints: {
+        diet_pattern: 'vegan',
+        available_foods: ['rice', 'tofu', 'spinach', 'egg', 'milk', 'mango'],
+      },
+    }));
+
+    expect(vegetarian.allergy_controls.excluded_foods).toContain('chicken');
+    expect(suggestedFoods(vegetarian)).not.toContain('chicken');
+    expect(vegan.allergy_controls.excluded_foods).toEqual(expect.arrayContaining(['egg', 'milk']));
+    expect(suggestedFoods(vegan)).not.toEqual(expect.arrayContaining(['egg', 'milk']));
+  });
+
+  it('removes foods explicitly requiring cooking when no cooking access exists', () => {
+    const output = buildDailyFlow(makeInput({
+      constraints: {
+        cooking_access: 'none',
+        available_foods: ['dry rice', 'raw chicken', 'bread', 'tofu', 'apple'],
+      },
+    }));
+
+    expect(output.allergy_controls.excluded_foods).toEqual(
+      expect.arrayContaining(['dry rice', 'raw chicken']),
+    );
+    expect(suggestedFoods(output)).not.toEqual(
+      expect.arrayContaining(['dry rice', 'raw chicken']),
+    );
+    expect(output.questions.join(' ')).toContain('ready-to-eat');
+  });
+
+  it('keeps custom diet patterns general until exclusions are explicit', () => {
+    const output = buildDailyFlow(makeInput({ constraints: { diet_pattern: 'custom' } }));
+    expect(output.eligibility).toBe('general_only');
+    expect(output.estimated_daily_energy).toBeNull();
+    expect(output.questions.join(' ')).toContain('custom diet pattern');
+  });
+
   it.each([
     ['under_18', { profile: { age: 17 } }],
     ['pregnancy', { health_screen: { pregnant: true } }],

@@ -34,7 +34,9 @@ export const DailyFlowInputSchema = z
           ])
           .default('custom'),
         country_or_food_context: ShortText.optional(),
-        diet_pattern: ShortText.optional(),
+        diet_pattern: z
+          .enum(['omnivore', 'vegetarian', 'vegan', 'pescatarian', 'custom'])
+          .default('omnivore'),
         allergies: z.array(ShortText).max(20).default([]),
         intolerances: z.array(ShortText).max(20).default([]),
         avoid: z.array(ShortText).max(30).default([]),

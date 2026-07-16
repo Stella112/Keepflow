@@ -43,7 +43,7 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
           network,
           payTo: config.payments.payToAddress,
         },
-        description: `${config.service.asp} — ${config.service.name}`,
+        description: `${config.service.asp} - First Move - Ordered Incident Recovery`,
         mimeType: 'application/json',
       },
       'POST /v1/daily-flow': {

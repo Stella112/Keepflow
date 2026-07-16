@@ -1,10 +1,10 @@
 # KeepFlow
 
-**When life breaks, keep it moving.**
+**The next safe step for everyday routines and life disruptions.**
 
-KeepFlow is an Agent Service Provider (ASP) that produces structured recovery
-plans when a digital-access asset — a phone, an account, a second factor, or a
-crypto key — is disrupted.
+KeepFlow is a **Lifestyle Continuity Companion**: an Agent Service Provider
+(ASP) that helps people keep moving through everyday routines and disruptive
+moments with a clear, safe next step.
 
 It currently exposes two services:
 

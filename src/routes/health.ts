@@ -8,14 +8,13 @@ export const healthRouter = Router();
 healthRouter.get('/', (_req, res) => {
   res.json({
     asp: config.service.asp,
-    service: 'KeepFlow Agent Services',
+    service: config.service.name,
     tagline: config.service.tagline,
     version: config.service.version,
     description:
-      'Two stateless agent services: First Move provides ordered, cascade-aware ' +
-      'digital-incident recovery; Daily Flow provides an adult general-wellness ' +
-      'meal and movement checklist constrained by the caller-provided foods, ' +
-      'allergies, access, budget preference, and international food context.',
+      'A lifestyle continuity companion for everyday routines and disruptive ' +
+      'moments. Daily Flow creates constraint-aware adult meal and movement ' +
+      'checklists; First Move provides ordered digital-incident recovery.',
     endpoints: {
       health: 'GET /health',
       first_move: 'POST /v1/first-move  (JSON body: { "description": "..." })',

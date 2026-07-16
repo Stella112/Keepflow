@@ -55,8 +55,8 @@ export function loadConfig(): Config {
     nodeEnv: process.env.NODE_ENV ?? 'development',
     service: {
       asp: 'KeepFlow',
-      name: 'First Move — Ordered Incident Recovery',
-      tagline: 'When life breaks, keep it moving.',
+      name: 'KeepFlow - Lifestyle Continuity Companion',
+      tagline: 'The next safe step for everyday routines and life disruptions.',
       version: '0.1.0',
     },
     classifier: {
