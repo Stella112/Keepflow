@@ -9,7 +9,7 @@ import type { Runbook } from './types.js';
  */
 export const stolenPhone: Runbook = {
   id: 'digital-access/stolen-phone',
-  version: '1.1.0',
+  version: '1.2.0',
   incidentType: 'stolen_or_lost_phone',
   title: 'Stolen or lost phone',
   matchTerms: [
@@ -57,7 +57,7 @@ export const stolenPhone: Runbook = {
     {
       id: 'freeze-physical-cards',
       action:
-        'Freeze or lock every missing payment card through each issuer\'s official app or emergency channel, then review recent transactions and report anything you do not recognise.',
+        'From this trusted laptop, open each card issuer\'s official website by typing the known address or using a trusted bookmark, freeze every missing card, and review recent transactions. If web access fails, get the issuer\'s verified emergency number from an official statement or website and call from a trusted borrowed phone or landline, or visit a branch.',
       urgency: 'immediate',
       priorityClass: 'irreversible_loss',
       condition: 'If a physical wallet or any payment cards were stolen with the phone.',
@@ -70,7 +70,7 @@ export const stolenPhone: Runbook = {
     {
       id: 'email-sessions',
       action:
-        'From a trusted second device, change your primary email password and sign out of all its active sessions.',
+        'From this trusted laptop, open your email provider\'s official website by typing the known address or using a trusted bookmark, change the primary email password, and sign out all other active sessions.',
       urgency: 'immediate',
       priorityClass: 'exploitable_access',
       condition: 'If your email was logged in on the missing phone.',
@@ -83,7 +83,7 @@ export const stolenPhone: Runbook = {
     {
       id: 'high-value-sessions',
       action:
-        'Revoke active sessions and change passwords on money- and identity-critical accounts (exchange, bank, primary social).',
+        'Using the official websites in this trusted laptop\'s browser, revoke active sessions and change passwords on money- and identity-critical accounts (exchange, bank, primary social).',
       urgency: 'immediate',
       priorityClass: 'exploitable_access',
       condition: 'If those apps were installed and logged in on the phone.',
@@ -96,7 +96,7 @@ export const stolenPhone: Runbook = {
     {
       id: 'prepare-for-offline',
       action:
-        'While this trusted connection still works, complete the highest-impact online steps first, save each provider\'s official recovery channel, and write down a short offline checklist without copying passwords, one-time codes, or recovery phrases.',
+        'While this laptop connection still works, first secure email, freeze missing cards, revoke financial sessions, and remote-lock the phone. Then write down each provider\'s verified support number or nearest branch/store and a short offline checklist without copying passwords, one-time codes, or recovery phrases.',
       urgency: 'immediate',
       priorityClass: 'exploitable_access',
       condition: 'If you may soon lose internet or access to this trusted second device.',
@@ -108,7 +108,7 @@ export const stolenPhone: Runbook = {
     {
       id: 'remote-lock',
       action:
-        'Use Find-My / device manager to remote-lock the phone and show a contact message; hold off on remote-wipe until you have secured accounts and preserved any evidence.',
+        'From this laptop, open the device platform\'s official Find-My website, remote-lock the phone, and show a safe contact message; hold off on remote-wipe until accounts are secured and useful evidence is preserved.',
       urgency: 'immediate',
       priorityClass: 'exploitable_access',
       condition: 'If remote device management (Find My iPhone / Find My Device) was enabled.',
@@ -121,7 +121,7 @@ export const stolenPhone: Runbook = {
     {
       id: 'sim-suspend',
       action:
-        'Contact your mobile carrier to suspend the SIM and place a port-out / SIM-swap freeze on the number.',
+        'Use the carrier\'s official website or web chat from this laptop to suspend the SIM and place a port-out / SIM-swap freeze on the number. If online verification requires the missing phone, call the verified support number from a trusted borrowed phone or landline, or visit an official carrier store with any remaining identification.',
       urgency: 'urgent',
       priorityClass: 'exploitable_access',
       condition: 'Applies whenever the device (and its SIM) is missing.',
@@ -134,7 +134,7 @@ export const stolenPhone: Runbook = {
     {
       id: 'move-2fa',
       action:
-        'Re-establish two-factor authentication on a trusted device (re-enrol your authenticator or use saved backup codes), starting with email and any exchange.',
+        'From the laptop, use each provider\'s official account-recovery page and saved backup codes to regain access, starting with email and any exchange. Re-enrol an authenticator only on a replacement trusted device; never place backup codes in a shared computer or public browser.',
       urgency: 'urgent',
       priorityClass: 'cascade',
       condition: 'If your authenticator app existed only on the missing phone.',

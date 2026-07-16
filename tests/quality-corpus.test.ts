@@ -117,7 +117,9 @@ describe('plan usefulness corpus', () => {
     });
 
     const actions = plan.immediate_actions.map((action) => action.action).join('\n');
-    expect(actions).toMatch(/each issuer's official app or emergency channel/i);
+    expect(actions).toMatch(/each card issuer's official website/i);
+    expect(actions).toMatch(/trusted borrowed phone or landline/i);
+    expect(actions).toMatch(/visit a branch/i);
     expect(actions).toMatch(/short offline checklist/i);
     expect(actions).not.toMatch(/we (?:contacted|froze|locked)/i);
     expect(validatePlan(plan)).toEqual({ valid: true, errors: [] });
