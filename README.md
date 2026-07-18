@@ -10,7 +10,12 @@ The public root, `GET /`, is a responsive product landing page. The original
 machine-readable service descriptor is available at `GET /service.json`, while
 `GET /health` remains the minimal operational health response.
 
-It currently exposes four core paid, stateless services through six endpoints.
+The professional asset roadmap is specified in
+[`docs/ASSET_CREATION_ROADMAP.md`](docs/ASSET_CREATION_ROADMAP.md). Phase 1 is
+live as Presentation Pack; DOCX, XLSX, career and video outputs remain roadmap
+items and are not advertised as available yet.
+
+It currently exposes four core paid, stateless services through seven endpoints.
 Reminder Pack is a cross-service companion capability, not a fifth core service:
 
 - **Daily Flow - Constraint-Aware Meal & Movement Checklist**
@@ -18,6 +23,7 @@ Reminder Pack is a cross-service companion capability, not a fifth core service:
 - **KeepFlow Study - Academic Execution, Grounded Learning & Research Support**
 - **KeepFlow Work - Operational Handover**
 - **Reminder Pack - Importable Calendar Alerts** *(companion capability)*
+- **Presentation Pack - Grounded PowerPoint + Speaker Notes** *(shared Study/Work capability)*
 
 ---
 
@@ -322,6 +328,47 @@ receive invented operational instructions.
 
 Endpoint: `POST /v1/work-handover`
 
+## Presentation Pack
+
+Presentation Pack is a shared KeepFlow Study and KeepFlow Work capability. It
+turns 1–20 bounded, caller-supplied evidence items into a real 3–10 slide
+PowerPoint presentation with speaker notes. The first release supports grounded
+Work and Study decks; DOCX, XLSX, PDF and video outputs remain roadmap items.
+
+Every content slide references one or more caller-supplied evidence IDs. The
+optional model plans the narrative and visible copy through a strict tool schema;
+unknown evidence IDs, malformed slide structure, URLs, and secret-shaped output
+are rejected. If the model is disabled, unavailable, or returns an invalid plan,
+KeepFlow generates a deterministic evidence-organized deck instead.
+
+Before payment, the route validates and bounds the request, blocks prohibited
+academic work, rejects credentials, masks direct emails and labelled phone or
+student IDs, clears the raw body, and retains only sanitized source items for the
+active response. The generated OOXML archive is checked for required parts,
+slide count, speaker notes, CRC integrity, and prohibited active/external
+components before it is returned as bounded canonical base64.
+
+Endpoint: `POST /v1/presentation-pack`
+
+```bash
+curl -sX POST localhost:8080/v1/presentation-pack \
+  -H 'content-type: application/json' \
+  -d '{
+    "domain":"work",
+    "title":"Project Northstar executive update",
+    "purpose":"Give leadership a concise evidence-based status update and next decision.",
+    "audience":"Senior leadership team",
+    "requested_slide_count":5,
+    "source_items":[
+      {"id":"E001","label":"Delivery status","content":"The design review is complete. Two integration dependencies remain open."},
+      {"id":"E002","label":"Decision required","content":"Leadership must choose the support model before final verification."},
+      {"id":"E003","label":"Next actions","content":"The delivery lead will confirm dependency owners. Operations will document support options."}
+    ],
+    "branding":{},
+    "external_processing_acknowledged":true
+  }'
+```
+
 The handover model reflects the UK Health and Safety Executive's core principle
 that reliable handover requires preparation, task-relevant written and verbal
 exchange, and cross-checking by the recipient:
@@ -398,10 +445,12 @@ curl -sX POST localhost:8080/v1/first-move \
 Uses the official **`@okxweb3/x402-express`** SDK (`src/payments/okx-sdk.ts`),
 wired in `app.ts` to protect `POST /v1/daily-flow`, `POST /v1/first-move`,
 `POST /v1/study-flow`, `POST /v1/study-assist`, `POST /v1/work-handover`, and
-`POST /v1/reminder-pack` (`/` and `/health` stay free). These six paid routes
+`POST /v1/reminder-pack`, and `POST /v1/presentation-pack` (`/` and `/health`
+stay free). These seven paid routes
 belong to the four core services; Study planning and Study Assist are two
 capabilities of KeepFlow Study, and Reminder Pack is a cross-service companion
-capability rather than a separate core service.
+capability rather than a separate core service. Presentation Pack is a shared
+Study/Work capability rather than a fifth core service.
 `PAYMENTS_ENABLED` defaults to `false` for local development. Every paid call
 uses the configured price, currently `$0.05` by default. Strict input,
 academic-integrity, material, and credential checks run before the payment

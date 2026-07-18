@@ -47,6 +47,7 @@ describe('payment configuration', () => {
       'POST /v1/study-assist',
       'POST /v1/work-handover',
       'POST /v1/reminder-pack',
+      'POST /v1/presentation-pack',
     ]);
   });
 

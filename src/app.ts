@@ -25,10 +25,17 @@ import {
   reminderPackPrepaymentGuard,
   reminderPackRouter,
 } from './routes/reminder-pack.js';
+import {
+  createPresentationPackRouter,
+  presentationPackPrepaymentGuard,
+} from './routes/presentation-pack.js';
+import type { PresentationPlanner } from './engine/presentation-plan.js';
 
 export interface CreateAppOptions {
   /** Test/integration seam. Production uses the configured bounded providers. */
   studyAssistDependencies?: StudyAssistDependencies;
+  /** Test/integration seam for grounded presentation planning. */
+  presentationPlanner?: PresentationPlanner | null;
 }
 
 export function createApp(options: CreateAppOptions = {}) {
@@ -101,6 +108,10 @@ export function createApp(options: CreateAppOptions = {}) {
   // payment and reuses the exact validated event set after settlement.
   app.post('/v1/reminder-pack', reminderPackPrepaymentGuard);
 
+  // Presentation source items are screened, privacy-masked and held only in
+  // server-owned response locals before the x402 payment challenge.
+  app.post('/v1/presentation-pack', presentationPackPrepaymentGuard);
+
   // Reject malformed, secret-bearing, or prohibited paid requests before the
   // customer sees an x402 challenge. Route handlers validate again as a
   // defense-in-depth boundary after payment verification.
@@ -131,6 +142,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(createStudyAssistRouter(options.studyAssistDependencies));
   app.use(workHandoverRouter);
   app.use(reminderPackRouter);
+  app.use(createPresentationPackRouter(options.presentationPlanner));
 
   // JSON body parse errors and anything uncaught.
   app.use(

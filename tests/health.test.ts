@@ -54,9 +54,10 @@ describe('KeepFlow service descriptors', () => {
       };
 
       expect(response.status).toBe(200);
-      expect(body.version).toBe('0.5.0');
+      expect(body.version).toBe('0.6.0');
       expect(body.endpoints.study_assist).toContain('POST /v1/study-assist');
       expect(body.endpoints.reminder_pack).toContain('POST /v1/reminder-pack');
+      expect(body.endpoints.presentation_pack).toContain('POST /v1/presentation-pack');
       expect(body.companion_capabilities).toContain(
         'stateless calendar reminder packs with importable alerts',
       );
@@ -88,9 +89,9 @@ describe('KeepFlow service descriptors', () => {
       expect(response.status).toBe(200);
       expect(body).toMatchObject({
         status: 'ok',
-        version: '0.5.0',
+        version: '0.6.0',
         service_count: 4,
-        paid_capability_count: 6,
+        paid_capability_count: 7,
         reminder_delivery_mode: 'calendar_import',
         study_tutor_mode: config.studyAssistant.enabled
           ? 'grounded_ai'

@@ -40,6 +40,13 @@ export interface Config {
     model: string;
     timeoutMs: number;
   };
+  presentationAssistant: {
+    /** Grounded deck planning is optional; deterministic rendering remains available. */
+    enabled: boolean;
+    apiKey: string | undefined;
+    model: string;
+    timeoutMs: number;
+  };
   research: {
     crossrefMailto: string | undefined;
     timeoutMs: number;
@@ -65,7 +72,7 @@ export function loadConfig(): Config {
       asp: 'KeepFlow',
       name: 'KeepFlow - Lifestyle Continuity Companion',
       tagline: 'The next safe step for everyday routines and life disruptions.',
-      version: '0.5.0',
+      version: '0.6.0',
     },
     classifier: {
       llmEnabled: Boolean(apiKey),
@@ -81,6 +88,12 @@ export function loadConfig(): Config {
       // Study Assist is intentionally cost-bounded at the five-cent price.
       model: process.env.STUDY_AI_MODEL?.trim() || 'claude-haiku-4-5',
       timeoutMs: envInt('STUDY_AI_TIMEOUT_MS', 25_000),
+    },
+    presentationAssistant: {
+      enabled: Boolean(apiKey) && envBool('PRESENTATION_AI_ENABLED', true),
+      apiKey,
+      model: process.env.PRESENTATION_AI_MODEL?.trim() || 'claude-haiku-4-5',
+      timeoutMs: envInt('PRESENTATION_AI_TIMEOUT_MS', 25_000),
     },
     research: {
       crossrefMailto: process.env.CROSSREF_MAILTO?.trim() || undefined,

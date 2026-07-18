@@ -69,7 +69,7 @@ export const landingPageHtml = String.raw`<!doctype html>
       </section>
 
       <section class="proof-strip" aria-label="KeepFlow at a glance">
-        <div class="shell proof-grid"><div><strong>4</strong><span>core life services</span></div><div><strong>6</strong><span>paid capabilities</span></div><div><strong>24/7</strong><span>agent-ready endpoint</span></div><div><strong>X Layer</strong><span>x402 payments</span></div></div>
+        <div class="shell proof-grid"><div><strong>4</strong><span>core life services</span></div><div><strong>7</strong><span>paid capabilities</span></div><div><strong>24/7</strong><span>agent-ready endpoint</span></div><div><strong>X Layer</strong><span>x402 payments</span></div></div>
       </section>
 
       <section class="section shell" id="services">
@@ -134,9 +134,9 @@ export const landingPageHtml = String.raw`<!doctype html>
       </section>
 
       <section class="section shell developer-section" id="developers">
-        <div class="developer-copy"><p class="eyebrow"><span></span>Built for people. Callable by agents.</p><h2>Six focused endpoints.<br>One consistent standard.</h2><p>Every capability is available as a public HTTPS API protected by OKX x402 payments on X Layer.</p><div class="developer-actions"><a class="button button-primary" href="/service.json">Machine-readable service</a><a class="button button-secondary" href="https://github.com/Stella112/Keepflow">View source</a></div></div>
+        <div class="developer-copy"><p class="eyebrow"><span></span>Built for people. Callable by agents.</p><h2>Seven focused endpoints.<br>One consistent standard.</h2><p>Every capability is available as a public HTTPS API protected by OKX x402 payments on X Layer.</p><div class="developer-actions"><a class="button button-primary" href="/service.json">Machine-readable service</a><a class="button button-secondary" href="https://github.com/Stella112/Keepflow">View source</a></div></div>
         <div class="endpoint-panel" aria-label="KeepFlow API endpoints">
-          <div class="endpoint-head"><span>ENDPOINT</span><span>PER CALL</span></div><div><code>POST /v1/daily-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/first-move</code><span>0.05 USDT</span></div><div><code>POST /v1/study-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/study-assist</code><span>0.05 USDT</span></div><div><code>POST /v1/work-handover</code><span>0.05 USDT</span></div><div><code>POST /v1/reminder-pack</code><span>0.05 USDT</span></div>
+          <div class="endpoint-head"><span>ENDPOINT</span><span>PER CALL</span></div><div><code>POST /v1/daily-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/first-move</code><span>0.05 USDT</span></div><div><code>POST /v1/study-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/study-assist</code><span>0.05 USDT</span></div><div><code>POST /v1/work-handover</code><span>0.05 USDT</span></div><div><code>POST /v1/reminder-pack</code><span>0.05 USDT</span></div><div><code>POST /v1/presentation-pack</code><span>0.05 USDT</span></div>
         </div>
       </section>
 
