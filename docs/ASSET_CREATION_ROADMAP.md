@@ -1,6 +1,8 @@
 # KeepFlow Asset Creation Roadmap
 
-Status: Phase 1 Presentation Pack is implemented; later phases remain planned.
+Status: Phase 1 Presentation Pack and Continuity Pack's bounded PDF/DOCX brief
+exports are implemented; general-purpose office, career, and video phases remain
+planned.
 
 ## Product goal
 
@@ -331,7 +333,8 @@ than assuming the existing `$0.05` price is profitable.
 - provider failure returns an explicit error/partial result, never fabricated
   files;
 - concurrent calls remain within memory/time limits; and
-- existing seven paid endpoints and all current tests remain unchanged.
+- the existing paid endpoints and all current tests remain protected while new
+  capabilities are added through the central paid-route registry.
 
 ## Rollout order
 
@@ -345,7 +348,8 @@ than assuming the existing `$0.05` price is profitable.
 
 ### Phase 2 — professional asset packs
 
-1. DOCX executive report and study guide.
+1. General DOCX executive report and study guide (Continuity Pack already emits
+   its own bounded DOCX/PDF brief).
 2. XLSX action register, study planner and source table.
 3. Career Pack resume, cover letter and transparent keyword analysis.
 4. PDF versions and downloadable sample outputs.

@@ -30,6 +30,10 @@ import {
   presentationPackPrepaymentGuard,
 } from './routes/presentation-pack.js';
 import type { PresentationPlanner } from './engine/presentation-plan.js';
+import {
+  continuityPackPrepaymentGuard,
+  continuityPackRouter,
+} from './routes/continuity-pack.js';
 
 export interface CreateAppOptions {
   /** Test/integration seam. Production uses the configured bounded providers. */
@@ -112,6 +116,10 @@ export function createApp(options: CreateAppOptions = {}) {
   // server-owned response locals before the x402 payment challenge.
   app.post('/v1/presentation-pack', presentationPackPrepaymentGuard);
 
+  // Continuity Pack turns validated, privacy-masked access context into one
+  // executable response. Artifact generation remains behind successful x402.
+  app.post('/v1/continuity-pack', continuityPackPrepaymentGuard);
+
   // Reject malformed, secret-bearing, or prohibited paid requests before the
   // customer sees an x402 challenge. Route handlers validate again as a
   // defense-in-depth boundary after payment verification.
@@ -143,6 +151,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(workHandoverRouter);
   app.use(reminderPackRouter);
   app.use(createPresentationPackRouter(options.presentationPlanner));
+  app.use(continuityPackRouter);
 
   // JSON body parse errors and anything uncaught.
   app.use(

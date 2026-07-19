@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { config } from '../config.js';
 import { landingPageHtml } from '../landing-page.js';
+import { continuityMetricsSnapshot } from '../observability/continuity-metrics.js';
 
 export const healthRouter = Router();
 
@@ -24,7 +25,9 @@ function buildServiceDescriptor() {
       'Work produces operational handovers. Reminder Pack turns future actions from ' +
       'any service into importable calendar alerts without storing reminder data. ' +
       'Presentation Pack converts grounded Study or Work source material into a ' +
-      'verified PowerPoint with speaker notes.',
+      'verified PowerPoint with speaker notes. Continuity Pack is the flagship ' +
+      'orchestration capability: one access-aware request returns an action timeline, ' +
+      'message scripts, delegation cards, calendar reminders, and PDF/DOCX briefs.',
     endpoints: {
       health: 'GET /health',
       service_descriptor: 'GET /service.json',
@@ -35,6 +38,8 @@ function buildServiceDescriptor() {
       work_handover: 'POST /v1/work-handover  (JSON operational state, tasks, owners, and dependencies)',
       reminder_pack: 'POST /v1/reminder-pack  (JSON future events converted to importable calendar alarms)',
       presentation_pack: 'POST /v1/presentation-pack  (JSON grounded Work or Study source items converted to a verified PPTX)',
+      continuity_pack: 'POST /v1/continuity-pack  (JSON disruption and resource availability converted to an executable PDF/DOCX/ICS continuity pack)',
+      privacy_safe_metrics: 'GET /metrics  (process-lifetime aggregate counters; no request or artifact content)',
     },
     services: [
       { priority: 1, name: 'Daily Flow - Constraint-Aware Meal & Movement Checklist' },
@@ -50,7 +55,10 @@ function buildServiceDescriptor() {
         capabilities: ['operational handover', 'grounded executive presentations'],
       },
     ],
-    companion_capabilities: ['stateless calendar reminder packs with importable alerts'],
+    companion_capabilities: [
+      'flagship access-aware continuity orchestration with PDF, DOCX, and ICS artifacts',
+      'stateless calendar reminder packs with importable alerts',
+    ],
     first_move_supported_incidents: [
       'stolen or lost phone',
       'account takeover',
@@ -92,7 +100,15 @@ healthRouter.get('/health', (_req, res) => {
       : 'deterministic_fallback',
     payments_enabled: config.payments.enabled,
     service_count: 4,
-    paid_capability_count: 7,
+    paid_capability_count: 8,
     reminder_delivery_mode: 'calendar_import',
+  });
+});
+
+healthRouter.get('/metrics', (_req, res) => {
+  res.json({
+    asp: config.service.asp,
+    service: 'KeepFlow Continuity Pack',
+    ...continuityMetricsSnapshot(),
   });
 });

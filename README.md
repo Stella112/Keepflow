@@ -11,12 +11,13 @@ machine-readable service descriptor is available at `GET /service.json`, while
 `GET /health` remains the minimal operational health response.
 
 The professional asset roadmap is specified in
-[`docs/ASSET_CREATION_ROADMAP.md`](docs/ASSET_CREATION_ROADMAP.md). Phase 1 is
-live as Presentation Pack; DOCX, XLSX, career and video outputs remain roadmap
-items and are not advertised as available yet.
+[`docs/ASSET_CREATION_ROADMAP.md`](docs/ASSET_CREATION_ROADMAP.md). Presentation
+Pack is live, and Continuity Pack now creates bounded PDF and DOCX briefs. General
+office-document generation, XLSX, career, and video outputs remain roadmap items.
 
-It currently exposes four core paid, stateless services through seven endpoints.
-Reminder Pack is a cross-service companion capability, not a fifth core service:
+It currently exposes four core paid, stateless services through eight endpoints.
+Reminder Pack and Continuity Pack are cross-service companion capabilities, not
+additional core services:
 
 - **Daily Flow - Constraint-Aware Meal & Movement Checklist**
 - **First Move - Ordered Incident Recovery**
@@ -24,6 +25,7 @@ Reminder Pack is a cross-service companion capability, not a fifth core service:
 - **KeepFlow Work - Operational Handover**
 - **Reminder Pack - Importable Calendar Alerts** *(companion capability)*
 - **Presentation Pack - Grounded PowerPoint + Speaker Notes** *(shared Study/Work capability)*
+- **Continuity Pack - Access-Aware Actions + PDF/DOCX/ICS** *(flagship orchestration capability)*
 
 ---
 
@@ -328,12 +330,58 @@ receive invented operational instructions.
 
 Endpoint: `POST /v1/work-handover`
 
+## Continuity Pack
+
+Continuity Pack is KeepFlow's flagship cross-service orchestration capability.
+One request describes the disruption, location, deadlines, stakeholders, and the
+user's real access to a safe place, another device, a borrowed phone, internet,
+money, identification, a trusted person, and transport. Every access state must
+be declared as `available`, `unavailable`, or `unknown`.
+
+The response includes a next-15-minutes/today/next-seven-days timeline,
+ready-to-send stakeholder messages, bounded delegation cards, an importable ICS
+calendar, and printable PDF and DOCX briefs. Any step that relies on an
+unavailable or unknown resource includes a viable alternative route. The service
+does not contact providers, send messages, run background reminders, or store the
+request or generated files.
+
+Endpoint: `POST /v1/continuity-pack`
+
+```bash
+curl -sX POST localhost:8080/v1/continuity-pack \
+  -H 'content-type: application/json' \
+  -d '{
+    "situation_type":"stolen_phone_or_wallet",
+    "description":"I am travelling alone and my phone and wallet were stolen at the station.",
+    "location":{"country":"France","city_or_area":"Paris","away_from_home":true},
+    "access":{
+      "safe_place":"available",
+      "another_device":"unavailable",
+      "borrowed_phone":"unavailable",
+      "internet":"unavailable",
+      "money":"unavailable",
+      "identification":"unavailable",
+      "trusted_person":"available",
+      "transport":"unknown"
+    },
+    "stakeholders":["bank_or_card_provider","mobile_carrier","family_or_friend","embassy_or_consulate"],
+    "immediate_deadlines":[],
+    "timezone":"Europe/Paris",
+    "include_artifacts":{}
+  }'
+```
+
+`GET /metrics` exposes only process-lifetime aggregate counts and artifact byte
+totals. It never exposes descriptions, messages, contact details, or artifact
+contents.
+
 ## Presentation Pack
 
 Presentation Pack is a shared KeepFlow Study and KeepFlow Work capability. It
 turns 1–20 bounded, caller-supplied evidence items into a real 3–10 slide
 PowerPoint presentation with speaker notes. The first release supports grounded
-Work and Study decks; DOCX, XLSX, PDF and video outputs remain roadmap items.
+Work and Study decks. Continuity Pack separately supports bounded PDF/DOCX
+briefs; general DOCX/XLSX generation and video outputs remain roadmap items.
 
 Every content slide references one or more caller-supplied evidence IDs. The
 optional model plans the narrative and visible copy through a strict tool schema;
@@ -445,12 +493,14 @@ curl -sX POST localhost:8080/v1/first-move \
 Uses the official **`@okxweb3/x402-express`** SDK (`src/payments/okx-sdk.ts`),
 wired in `app.ts` to protect `POST /v1/daily-flow`, `POST /v1/first-move`,
 `POST /v1/study-flow`, `POST /v1/study-assist`, `POST /v1/work-handover`, and
-`POST /v1/reminder-pack`, and `POST /v1/presentation-pack` (`/` and `/health`
-stay free). These seven paid routes
+`POST /v1/reminder-pack`, `POST /v1/presentation-pack`, and
+`POST /v1/continuity-pack` (`/`, `/health`, `/service.json`, and `/metrics` stay
+free). These eight paid routes
 belong to the four core services; Study planning and Study Assist are two
 capabilities of KeepFlow Study, and Reminder Pack is a cross-service companion
 capability rather than a separate core service. Presentation Pack is a shared
-Study/Work capability rather than a fifth core service.
+Study/Work capability, while Continuity Pack is the flagship cross-service
+orchestration capability. Neither is a fifth core service.
 `PAYMENTS_ENABLED` defaults to `false` for local development. Every paid call
 uses the configured price, currently `$0.05` by default. Strict input,
 academic-integrity, material, and credential checks run before the payment
@@ -479,7 +529,7 @@ register/list the ASP on OKX.AI via Onchain OS (Agentic Wallet).
 keepflow/
 ├── src/
 │   ├── server.ts, app.ts, config.ts
-│   ├── routes/        health, firstmove, daily-flow, study-flow, study-assist, work-handover, reminder-pack
+│   ├── routes/        health plus eight paid capability routes
 │   ├── schemas/       strict input/output contracts for all four services
 │   ├── security/      secret/identifier controls plus danger, integrity, and misuse gates
 │   ├── engine/        planning, bounded material extraction, grounded tutoring, and validation

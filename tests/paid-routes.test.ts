@@ -49,7 +49,7 @@ function run(
 }
 
 describe('paid-route registry', () => {
-  it('contains all seven exact paid capabilities at the shared five-cent default', () => {
+  it('contains all eight exact paid capabilities at the shared five-cent default', () => {
     expect(PAID_ROUTE_KEYS).toEqual([
       'POST /v1/first-move',
       'POST /v1/daily-flow',
@@ -58,8 +58,9 @@ describe('paid-route registry', () => {
       'POST /v1/work-handover',
       'POST /v1/reminder-pack',
       'POST /v1/presentation-pack',
+      'POST /v1/continuity-pack',
     ]);
-    expect(PAID_ROUTE_SPECS).toHaveLength(7);
+    expect(PAID_ROUTE_SPECS).toHaveLength(8);
     expect(loadConfig().payments.priceUsd).toBe('$0.05');
 
     expect(findPaidRoute('POST', '/v1/study-assist')).toMatchObject({
@@ -132,6 +133,16 @@ describe('prevalidated paid bodies', () => {
     expect(presentationNext).not.toHaveBeenCalled();
     expect(presentationState.statusCode).toBe(500);
     expect(presentationState.body).toEqual({ error: 'paid_route_prevalidation_missing' });
+
+    const continuityState = responseState();
+    const continuityNext = run(
+      validatePaidRequestBeforePayment,
+      request('POST', '/v1/continuity-pack', { should_not_be_read: true }),
+      continuityState,
+    );
+    expect(continuityNext).not.toHaveBeenCalled();
+    expect(continuityState.statusCode).toBe(500);
+    expect(continuityState.body).toEqual({ error: 'paid_route_prevalidation_missing' });
   });
 
   it('accepts only a server marker for that exact canonical route', () => {
