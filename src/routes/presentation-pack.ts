@@ -161,7 +161,7 @@ export function presentationPackPrepaymentGuard(
   res.locals[INPUT_LOCAL] = sanitized;
   res.locals[PERSONAL_DATA_LOCAL] = [...personalData];
   const cleanup = installCleanup(req, res);
-  if (!markPaidRouteBodyPrevalidated(res, req.method, req.path)) {
+  if (!markPaidRouteBodyPrevalidated(res, req.method, req.path, sanitized)) {
     cleanup();
     res.status(500).json({ error: 'paid_route_prevalidation_failed' });
     return;

@@ -36,7 +36,7 @@ export function reminderPackPrepaymentGuard(
   }
 
   res.locals.reminderPackInput = parsed.data;
-  if (!markPaidRouteBodyPrevalidated(res, req.method, req.path)) {
+  if (!markPaidRouteBodyPrevalidated(res, req.method, req.path, parsed.data)) {
     res.status(500).json({ error: 'paid_route_prevalidation_missing' });
     return;
   }

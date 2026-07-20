@@ -85,7 +85,7 @@ describe('Crossref research source request contract', () => {
     expect(url.username).toBe('');
     expect(url.password).toBe('');
     expect(url.searchParams.get('query.bibliographic')).toBe('气候变化 & education?');
-    expect(url.searchParams.get('rows')).toBe('8');
+    expect(url.searchParams.get('rows')).toBe('25');
     expect(url.searchParams.get('filter')).toBe(
       'type:journal-article,has-update:0,from-pub-date:2021-01-01',
     );
@@ -135,12 +135,20 @@ describe('Crossref verified source mapping', () => {
         canonical_url: 'https://doi.org/10.1234/example.1',
         verification_status: 'crossref_registry_record_found',
         integrity_status: 'no_crossref_update_flag_at_retrieval_time',
+        quality_tier: 'stronger_metadata_match',
+        quality_signals: {
+          provider_relevance_score: 999,
+          citation_count: 5000,
+          metadata_completeness: 4,
+        },
+        selection_note: 'Registry metadata is verified; source quality and claims still require critical evaluation.',
         verified_at: '2026-07-16T12:00:00.000Z',
       },
     ]);
     expect(result.sources[0]!.canonical_url).not.toContain('malicious.example');
     const serialized = JSON.stringify(result.sources[0]);
-    expect(serialized).not.toMatch(/peer.?review|quality|authoritative|unretracted/i);
+    expect(serialized).not.toMatch(/peer.?review|authoritative|unretracted/i);
+    expect(serialized).toMatch(/quality and claims still require critical evaluation/i);
   });
 
   it('drops records without a DOI or title and never fills missing results', async () => {

@@ -4,17 +4,23 @@ import { DailyFlowInputSchema } from '../schemas/daily-flow-input.js';
 import { FirstMoveInputSchema } from '../schemas/firstmove-input.js';
 import { StudyFlowInputSchema } from '../schemas/study-flow-input.js';
 import { WorkHandoverInputSchema } from '../schemas/work-handover-input.js';
+import { StudyAssistInputSchema } from '../schemas/study-assist-input.js';
+import { ReminderPackInputSchema } from '../schemas/reminder-pack-input.js';
+import { PresentationPackInputSchema } from '../schemas/presentation-pack-input.js';
+import { ContinuityPackInputSchema } from '../schemas/continuity-pack-input.js';
 import { containsSecretShape } from '../security/redact-secrets.js';
+import { createHash } from 'node:crypto';
 
 interface PaidRouteBase {
   method: 'POST';
   path: string;
   description: string;
+  operationId: string;
+  inputSchema: ZodTypeAny;
 }
 
 export interface SchemaValidatedPaidRouteSpec extends PaidRouteBase {
   bodyValidation: 'schema';
-  inputSchema: ZodTypeAny;
   /** First Move intentionally accepts exposed credentials so it can produce
    * the deterministic exposure runbook after redacting them. Other services
    * have no legitimate need to receive credentials and reject them for free. */
@@ -36,6 +42,23 @@ export type PaidRouteSpec =
 /** Server-only response-local key used to prove large-body prevalidation ran. */
 export const PAID_ROUTE_PREVALIDATION_LOCAL =
   'keepflowPaidRoutePrevalidatedKey' as const;
+export const PAID_ROUTE_FINGERPRINT_LOCAL =
+  'keepflowPaidRouteRequestFingerprint' as const;
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+export function fingerprintValidatedRequest(value: unknown): string {
+  return createHash('sha256').update(stableJson(value)).digest('hex');
+}
 
 function paidRouteKey(method: string, path: string): string {
   return `${method} ${path}`;
@@ -46,6 +69,7 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     method: 'POST',
     path: '/v1/first-move',
     description: 'KeepFlow - First Move - Ordered Incident Recovery',
+    operationId: 'createFirstMovePlan',
     bodyValidation: 'schema',
     inputSchema: FirstMoveInputSchema,
     allowSecretBearingInput: true,
@@ -54,6 +78,7 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     method: 'POST',
     path: '/v1/daily-flow',
     description: 'KeepFlow - Daily Flow - Constraint-Aware Meal & Movement Checklist',
+    operationId: 'createDailyFlowPlan',
     bodyValidation: 'schema',
     inputSchema: DailyFlowInputSchema,
     allowSecretBearingInput: false,
@@ -62,6 +87,7 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     method: 'POST',
     path: '/v1/study-flow',
     description: 'KeepFlow Study - Academic Execution',
+    operationId: 'createStudyFlowPlan',
     bodyValidation: 'schema',
     inputSchema: StudyFlowInputSchema,
     allowSecretBearingInput: false,
@@ -70,12 +96,15 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     method: 'POST',
     path: '/v1/study-assist',
     description: 'KeepFlow Study - Grounded Learning and Verified Research Support',
+    operationId: 'createStudyAssistPack',
+    inputSchema: StudyAssistInputSchema,
     bodyValidation: 'prevalidated_body',
   },
   {
     method: 'POST',
     path: '/v1/work-handover',
     description: 'KeepFlow Work - Operational Handover',
+    operationId: 'createWorkHandover',
     bodyValidation: 'schema',
     inputSchema: WorkHandoverInputSchema,
     allowSecretBearingInput: false,
@@ -84,18 +113,24 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     method: 'POST',
     path: '/v1/reminder-pack',
     description: 'KeepFlow - Calendar Reminder Pack',
+    operationId: 'createReminderPack',
+    inputSchema: ReminderPackInputSchema,
     bodyValidation: 'prevalidated_body',
   },
   {
     method: 'POST',
     path: '/v1/presentation-pack',
     description: 'KeepFlow Work and Study - Grounded Presentation Pack',
+    operationId: 'createPresentationPack',
+    inputSchema: PresentationPackInputSchema,
     bodyValidation: 'prevalidated_body',
   },
   {
     method: 'POST',
     path: '/v1/continuity-pack',
     description: 'KeepFlow - Access-Aware Executable Continuity Pack',
+    operationId: 'createContinuityPack',
+    inputSchema: ContinuityPackInputSchema,
     bodyValidation: 'prevalidated_body',
   },
 ] as const;
@@ -117,10 +152,14 @@ export function markPaidRouteBodyPrevalidated(
   res: Response,
   method: string,
   path: string,
+  validatedInput?: unknown,
 ): boolean {
   const route = findPaidRoute(method, path);
   if (!route || route.bodyValidation !== 'prevalidated_body') return false;
   res.locals[PAID_ROUTE_PREVALIDATION_LOCAL] = paidRouteKey(method, path);
+  if (validatedInput !== undefined) {
+    res.locals[PAID_ROUTE_FINGERPRINT_LOCAL] = fingerprintValidatedRequest(validatedInput);
+  }
   return true;
 }
 
@@ -217,5 +256,6 @@ export const validatePaidRequestBeforePayment: RequestHandler = (req, res, next)
   // Preserve schema defaults so the paid replay and route handler see exactly
   // the same validated request shape.
   req.body = parsed.data;
+  res.locals[PAID_ROUTE_FINGERPRINT_LOCAL] = fingerprintValidatedRequest(parsed.data);
   next();
 };

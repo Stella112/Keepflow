@@ -4,11 +4,18 @@
  * payments) and can be progressively enabled.
  */
 
-function envInt(name: string, fallback: number): number {
+function envInt(name: string, fallback: number, options: { min?: number; max?: number } = {}): number {
   const raw = process.env[name];
   if (!raw) return fallback;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) ? n : fallback;
+  // Number.parseInt('25junk', 10) silently accepts the prefix. Configuration
+  // is security-sensitive (timeouts and listen ports), so require a complete
+  // base-10 integer and keep it within the caller's safe bounds.
+  if (!/^[+-]?\d+$/.test(raw.trim())) return fallback;
+  const n = Number(raw);
+  if (!Number.isSafeInteger(n)) return fallback;
+  if (options.min !== undefined && n < options.min) return fallback;
+  if (options.max !== undefined && n > options.max) return fallback;
+  return n;
 }
 
 function envBool(name: string, fallback: boolean): boolean {
@@ -20,6 +27,7 @@ function envBool(name: string, fallback: boolean): boolean {
 export interface Config {
   port: number;
   nodeEnv: string;
+  publicBaseUrl: string;
   service: {
     asp: string;
     name: string;
@@ -65,14 +73,41 @@ export interface Config {
 
 export function loadConfig(): Config {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim() || undefined;
+  const configuredPayTo =
+    process.env.PAY_TO_ADDRESS?.trim() ||
+    process.env.X402_PAY_TO_ADDRESS?.trim() ||
+    undefined;
+  // KeepFlow's payment middleware uses the EVM exact scheme on X Layer. A
+  // malformed destination would otherwise make the SDK throw during startup
+  // (or, worse, advertise an unusable challenge). Treat it as unconfigured so
+  // the app fails closed with an explicit 500 on paid routes.
+  const payToAddress = configuredPayTo && /^0x[a-fA-F0-9]{40}$/.test(configuredPayTo)
+    ? configuredPayTo
+    : undefined;
+  const configuredPrice = process.env.X402_PRICE_USD?.trim();
+  // The SDK's USD price syntax is a dollar-prefixed decimal. Keep the amount
+  // positive and bounded to cents; this prevents accidental free/astronomical
+  // listings caused by a typo in deployment configuration.
+  const priceUsd = configuredPrice && /^\$(?:0\.[0-9]{1,2}|[1-9]\d{0,5}(?:\.\d{1,2})?)$/.test(configuredPrice)
+    && Number(configuredPrice.slice(1)) > 0
+    ? configuredPrice
+    : '$0.05';
+  const configuredNetwork = process.env.X402_NETWORK?.trim();
+  // ExactEvmScheme only supports CAIP-2 EVM namespaces. Limit the reference
+  // to decimal chain IDs so a malformed value cannot reach the SDK.
+  const network = configuredNetwork && /^eip155:\d{1,10}$/.test(configuredNetwork)
+    && Number(configuredNetwork.slice('eip155:'.length)) > 0
+    ? configuredNetwork
+    : 'eip155:196';
   return {
-    port: envInt('PORT', 8080),
+    port: envInt('PORT', 8080, { min: 1, max: 65_535 }),
     nodeEnv: process.env.NODE_ENV ?? 'development',
+    publicBaseUrl: (process.env.PUBLIC_BASE_URL?.trim() || 'https://keepflow.site').replace(/\/+$/, ''),
     service: {
       asp: 'KeepFlow',
       name: 'KeepFlow - Lifestyle Continuity Companion',
       tagline: 'The next safe step for everyday routines and life disruptions.',
-      version: '0.7.0',
+      version: '0.7.1',
     },
     classifier: {
       llmEnabled: Boolean(apiKey),
@@ -80,34 +115,31 @@ export function loadConfig(): Config {
       // Defaults to Opus 4.8. Set FIRSTMOVE_MODEL=claude-haiku-4-5 to cut
       // per-call cost — the classify/select task is simple enough for Haiku.
       model: process.env.FIRSTMOVE_MODEL?.trim() || 'claude-opus-4-8',
-      timeoutMs: envInt('FIRSTMOVE_MODEL_TIMEOUT_MS', 6000),
+      timeoutMs: envInt('FIRSTMOVE_MODEL_TIMEOUT_MS', 6000, { min: 100, max: 120_000 }),
     },
     studyAssistant: {
       enabled: Boolean(apiKey) && envBool('STUDY_AI_ENABLED', true),
       apiKey,
       // Study Assist is intentionally cost-bounded at the five-cent price.
       model: process.env.STUDY_AI_MODEL?.trim() || 'claude-haiku-4-5',
-      timeoutMs: envInt('STUDY_AI_TIMEOUT_MS', 25_000),
+      timeoutMs: envInt('STUDY_AI_TIMEOUT_MS', 25_000, { min: 100, max: 120_000 }),
     },
     presentationAssistant: {
       enabled: Boolean(apiKey) && envBool('PRESENTATION_AI_ENABLED', true),
       apiKey,
       model: process.env.PRESENTATION_AI_MODEL?.trim() || 'claude-haiku-4-5',
-      timeoutMs: envInt('PRESENTATION_AI_TIMEOUT_MS', 25_000),
+      timeoutMs: envInt('PRESENTATION_AI_TIMEOUT_MS', 25_000, { min: 100, max: 120_000 }),
     },
     research: {
       crossrefMailto: process.env.CROSSREF_MAILTO?.trim() || undefined,
-      timeoutMs: envInt('CROSSREF_TIMEOUT_MS', 8_000),
+      timeoutMs: envInt('CROSSREF_TIMEOUT_MS', 8_000, { min: 100, max: 120_000 }),
     },
     payments: {
       enabled: envBool('PAYMENTS_ENABLED', false),
-      payToAddress:
-        process.env.PAY_TO_ADDRESS?.trim() ||
-        process.env.X402_PAY_TO_ADDRESS?.trim() ||
-        undefined,
-      priceUsd: process.env.X402_PRICE_USD?.trim() || '$0.05',
+      payToAddress,
+      priceUsd,
       // CAIP-2 network id. X Layer mainnet = eip155:196, testnet = eip155:1952.
-      network: process.env.X402_NETWORK?.trim() || 'eip155:196',
+      network,
       okxConfigured: Boolean(
         process.env.OKX_API_KEY?.trim() &&
           process.env.OKX_SECRET_KEY?.trim() &&

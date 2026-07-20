@@ -42,6 +42,13 @@ export interface VerifiedResearchSource {
   canonical_url: string;
   verification_status: 'crossref_registry_record_found';
   integrity_status: 'no_crossref_update_flag_at_retrieval_time';
+  quality_tier: 'stronger_metadata_match' | 'standard_metadata_match' | 'limited_metadata';
+  quality_signals: {
+    provider_relevance_score: number | null;
+    citation_count: number | null;
+    metadata_completeness: number;
+  };
+  selection_note: 'Registry metadata is verified; source quality and claims still require critical evaluation.';
   verified_at: string;
 }
 

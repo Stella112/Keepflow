@@ -398,15 +398,27 @@ function buildMessages(input: ContinuityPackInput): ContinuityPlan['messages'] {
     ? input.stakeholders
     : ['family_or_friend', 'employer_or_school'] as const;
   const routes = deliveryRoutes(input);
+  const location = [input.location.city_or_area, input.location.country]
+    .filter((value): value is string => Boolean(value))
+    .join(', ');
+  const safeLocation = location || 'the location described in this request';
+  const situationSummary = input.description.replace(/\s+/g, ' ').trim();
+  const boundedSituation = situationSummary.length > 220
+    ? `${situationSummary.slice(0, 217)}...`
+    : situationSummary;
+  const practicalHelp = input.access.trusted_person === 'available'
+    ? 'locating the verified contact route and nearest staffed service point for the highest-priority provider'
+    : 'recording my next safe checkpoint and helping me reach a verified staffed service point';
+  const completionCheck = 'the provider case, appointment, or report reference';
   return selected.map((recipient, index) => {
     const bodyByRecipient: Record<typeof recipient, string> = {
       bank_or_card_provider: 'My phone and/or wallet is unavailable after a loss or theft. Please freeze the affected payment access, tell me what identity checks you accept through this verified channel, and give me a case reference. I will not provide a PIN, OTP, password, recovery code, seed phrase, or private key.',
       mobile_carrier: 'My phone is unavailable after a loss or theft. Please suspend the affected SIM or line, preserve the number if your process allows, explain the verified replacement steps, and give me a support reference. I will not provide passwords or one-time codes to an unsolicited contact.',
-      accommodation_or_transport: 'I am dealing with an unexpected disruption in [CITY/AREA]. My confirmed booking or journey is [REFERENCE WITHOUT PASSWORDS]. Please record the disruption, tell me the verified alternatives you accept, and provide a written reference or next update time.',
-      employer_or_school: 'I am safe, but an unexpected disruption is affecting my access and timing. The immediate impact is [ONE SENTENCE]. My safest workable next step is [ACTION], and I will provide another update by [TIME]. Please confirm the priority I should protect first.',
-      family_or_friend: 'I am safe, but I have had a serious disruption and may have limited phone, money, identification, or transport access. Please do not send money or information to an unverified request. I need help with [SPECIFIC TASK], and I will confirm completion using [AGREED SAFE CHECK].',
-      embassy_or_consulate: 'I am in [COUNTRY/CITY] and my travel or identity documents are unavailable. Please explain the official report, identity evidence, appointment, fee, and emergency-document process that applies. I need a case or appointment reference and will not share passwords or one-time codes.',
-      police_or_local_authority: 'I need to report a loss, theft, safety, or document incident that occurred around [TIME/PLACE]. The confirmed missing or affected items are [LIST]. Please tell me the correct reporting route and provide a report or reference number.',
+      accommodation_or_transport: `I am dealing with an unexpected disruption in ${safeLocation}. Please record that my access to the confirmed booking or journey may be affected, explain the verified alternatives you accept, and provide a written reference or next update time. I will share only the minimum non-secret booking details through your verified channel.`,
+      employer_or_school: `I am safe, but an unexpected disruption is affecting my access and timing. The confirmed situation is: ${boundedSituation} My safest workable next step is to protect urgent access and notify affected people through verified channels. Please confirm the priority I should protect first and the next reasonable update time.`,
+      family_or_friend: `I am safe, but I have had a serious disruption and may have limited phone, money, identification, or transport access. Please do not send money or information to an unverified request. I need help with ${practicalHelp}, and I will confirm completion using ${completionCheck}.`,
+      embassy_or_consulate: `I am in ${safeLocation}, and my travel or identity documents may be unavailable. Please explain the official report, identity evidence, appointment, fee, and emergency-document process that applies. I need a case or appointment reference and will not share passwords or one-time codes.`,
+      police_or_local_authority: `I need to report the following loss, theft, safety, or document incident in ${safeLocation}: ${boundedSituation} Please tell me the correct reporting route and provide a report or reference number. I will provide exact times and affected-item details only through the verified reporting channel.`,
     };
     return {
       id: `M${String(index + 1).padStart(2, '0')}`,

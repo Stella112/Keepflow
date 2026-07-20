@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { config } from '../config.js';
 import { landingPageHtml } from '../landing-page.js';
 import { continuityMetricsSnapshot } from '../observability/continuity-metrics.js';
+import { buildOpenApiDocument } from '../openapi.js';
+import { readinessSnapshot } from '../observability/readiness.js';
 
 export const healthRouter = Router();
 
@@ -12,16 +14,16 @@ function buildServiceDescriptor() {
     tagline: config.service.tagline,
     version: config.service.version,
     study_tutor_mode: config.studyAssistant.enabled
-      ? 'grounded_ai'
+      ? 'grounded_ai_configured'
       : 'deterministic_source_map_fallback',
     presentation_planner_mode: config.presentationAssistant.enabled
-      ? 'grounded_ai'
+      ? 'grounded_ai_configured'
       : 'deterministic_fallback',
     description:
       'A lifestyle continuity companion for everyday routines and disruptive ' +
       'moments: Daily Flow supports adult meal and movement routines; First Move ' +
       'orders digital-incident recovery; Study executes academic plans and provides ' +
-      'grounded learning, material explanation, and verified-source discovery; and ' +
+      'grounded learning, material explanation, and registry-verified source-metadata discovery; and ' +
       'Work produces operational handovers. Reminder Pack turns future actions from ' +
       'any service into importable calendar alerts without storing reminder data. ' +
       'Presentation Pack converts grounded Study or Work source material into a ' +
@@ -30,6 +32,8 @@ function buildServiceDescriptor() {
       'message scripts, delegation cards, calendar reminders, and PDF/DOCX briefs.',
     endpoints: {
       health: 'GET /health',
+      readiness: 'GET /ready',
+      openapi: 'GET /openapi.json',
       service_descriptor: 'GET /service.json',
       first_move: 'POST /v1/first-move  (JSON body: { "description": "..." })',
       daily_flow: 'POST /v1/daily-flow  (JSON adult profile, constraints, and health screen)',
@@ -46,7 +50,7 @@ function buildServiceDescriptor() {
       { priority: 2, name: 'First Move - Ordered Incident Recovery' },
       {
         priority: 3,
-        name: 'KeepFlow Study - Academic Execution, Grounded Learning & Verified Research',
+        name: 'KeepFlow Study - Academic Execution, Grounded Learning & Registry-Verified Research Metadata',
         capabilities: ['study planning', 'material explanation', 'practice support', 'source discovery', 'grounded presentations'],
       },
       {
@@ -66,6 +70,7 @@ function buildServiceDescriptor() {
       'possible seed phrase or private-key exposure',
     ],
     source: 'https://github.com/Stella112/Keepflow',
+    openapi: `${config.publicBaseUrl}/openapi.json`,
   };
 }
 
@@ -84,6 +89,14 @@ healthRouter.get('/service.json', (_req, res) => {
   res.json(buildServiceDescriptor());
 });
 
+healthRouter.get('/openapi.json', (_req, res) => {
+  res.json(buildOpenApiDocument());
+});
+
+healthRouter.get('/favicon.ico', (_req, res) => {
+  res.redirect(308, '/assets/keepflow-logo.jpeg');
+});
+
 healthRouter.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
@@ -93,16 +106,21 @@ healthRouter.get('/health', (_req, res) => {
     tagline: config.service.tagline,
     classifier: config.classifier.llmEnabled ? 'hybrid' : 'deterministic',
     study_tutor_mode: config.studyAssistant.enabled
-      ? 'grounded_ai'
+      ? 'grounded_ai_configured'
       : 'deterministic_source_map_fallback',
     presentation_planner_mode: config.presentationAssistant.enabled
-      ? 'grounded_ai'
+      ? 'grounded_ai_configured'
       : 'deterministic_fallback',
     payments_enabled: config.payments.enabled,
     service_count: 4,
     paid_capability_count: 8,
     reminder_delivery_mode: 'calendar_import',
   });
+});
+
+healthRouter.get('/ready', (_req, res) => {
+  const snapshot = readinessSnapshot(config);
+  res.status(snapshot.ready ? 200 : 503).json(snapshot);
 });
 
 healthRouter.get('/metrics', (_req, res) => {

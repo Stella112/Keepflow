@@ -39,6 +39,53 @@ describe('payment configuration', () => {
     }
   });
 
+  it('fails safe on malformed payment destination, price, and network settings', () => {
+    const previous = {
+      payTo: process.env.PAY_TO_ADDRESS,
+      legacyPayTo: process.env.X402_PAY_TO_ADDRESS,
+      price: process.env.X402_PRICE_USD,
+      network: process.env.X402_NETWORK,
+    };
+    process.env.PAY_TO_ADDRESS = '0xnot-an-address';
+    delete process.env.X402_PAY_TO_ADDRESS;
+    process.env.X402_PRICE_USD = '$0';
+    process.env.X402_NETWORK = 'solana:mainnet';
+    try {
+      const loaded = loadConfig();
+      expect(loaded.payments.payToAddress).toBeUndefined();
+      expect(loaded.payments.priceUsd).toBe('$0.05');
+      expect(loaded.payments.network).toBe('eip155:196');
+    } finally {
+      if (previous.payTo === undefined) delete process.env.PAY_TO_ADDRESS;
+      else process.env.PAY_TO_ADDRESS = previous.payTo;
+      if (previous.legacyPayTo === undefined) delete process.env.X402_PAY_TO_ADDRESS;
+      else process.env.X402_PAY_TO_ADDRESS = previous.legacyPayTo;
+      if (previous.price === undefined) delete process.env.X402_PRICE_USD;
+      else process.env.X402_PRICE_USD = previous.price;
+      if (previous.network === undefined) delete process.env.X402_NETWORK;
+      else process.env.X402_NETWORK = previous.network;
+    }
+  });
+
+  it('rejects malformed numeric configuration instead of accepting a prefix', () => {
+    const previous = {
+      port: process.env.PORT,
+      firstMoveTimeout: process.env.FIRSTMOVE_MODEL_TIMEOUT_MS,
+    };
+    process.env.PORT = '8080junk';
+    process.env.FIRSTMOVE_MODEL_TIMEOUT_MS = '-1';
+    try {
+      const loaded = loadConfig();
+      expect(loaded.port).toBe(8080);
+      expect(loaded.classifier.timeoutMs).toBe(6000);
+    } finally {
+      if (previous.port === undefined) delete process.env.PORT;
+      else process.env.PORT = previous.port;
+      if (previous.firstMoveTimeout === undefined) delete process.env.FIRSTMOVE_MODEL_TIMEOUT_MS;
+      else process.env.FIRSTMOVE_MODEL_TIMEOUT_MS = previous.firstMoveTimeout;
+    }
+  });
+
   it('protects every advertised paid service through one registry', () => {
     expect(PAID_ROUTE_KEYS).toEqual([
       'POST /v1/first-move',

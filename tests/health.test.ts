@@ -57,7 +57,7 @@ describe('KeepFlow service descriptors', () => {
       };
 
       expect(response.status).toBe(200);
-      expect(body.version).toBe('0.7.0');
+      expect(body.version).toBe('0.7.1');
       expect(body.endpoints.study_assist).toContain('POST /v1/study-assist');
       expect(body.endpoints.reminder_pack).toContain('POST /v1/reminder-pack');
       expect(body.endpoints.presentation_pack).toContain('POST /v1/presentation-pack');
@@ -76,7 +76,7 @@ describe('KeepFlow service descriptors', () => {
         .toContain('material explanation');
       expect(body.study_tutor_mode).toBe(
         config.studyAssistant.enabled
-          ? 'grounded_ai'
+          ? 'grounded_ai_configured'
           : 'deterministic_source_map_fallback',
       );
     });
@@ -97,14 +97,36 @@ describe('KeepFlow service descriptors', () => {
       expect(response.status).toBe(200);
       expect(body).toMatchObject({
         status: 'ok',
-        version: '0.7.0',
+        version: '0.7.1',
         service_count: 4,
         paid_capability_count: 8,
         reminder_delivery_mode: 'calendar_import',
         study_tutor_mode: config.studyAssistant.enabled
-          ? 'grounded_ai'
+          ? 'grounded_ai_configured'
           : 'deterministic_source_map_fallback',
       });
+    });
+  });
+
+  it('publishes all paid request schemas and dependency-aware readiness', async () => {
+    await withApp(async (origin) => {
+      const openApiResponse = await fetch(`${origin}/openapi.json`);
+      const openApi = await openApiResponse.json() as any;
+      expect(openApiResponse.status).toBe(200);
+      expect(openApi.openapi).toBe('3.1.0');
+      expect(Object.keys(openApi.paths)).toHaveLength(8);
+      expect(openApi.paths['/v1/continuity-pack'].post.requestBody.content['application/json'].schema)
+        .toMatchObject({ type: 'object', additionalProperties: false });
+      expect(openApi.paths['/v1/first-move'].post.operationId).toBe('createFirstMovePlan');
+
+      const ready = await fetch(`${origin}/ready`);
+      const readyBody = await ready.json() as any;
+      expect(ready.status).toBe(200);
+      expect(readyBody).toMatchObject({ ready: true, status: 'ready' });
+
+      const favicon = await fetch(`${origin}/favicon.ico`, { redirect: 'manual' });
+      expect(favicon.status).toBe(308);
+      expect(favicon.headers.get('location')).toBe('/assets/keepflow-logo.jpeg');
     });
   });
 

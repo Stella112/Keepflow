@@ -158,6 +158,21 @@ describe('Continuity Pack artifact generation', () => {
       expect(message.delivery_routes).toContain('in_person');
     });
   });
+
+  it('returns ready-to-send messages with no unresolved template placeholders', async () => {
+    const output = await buildContinuityPack(validInput({
+      stakeholders: [
+        'accommodation_or_transport',
+        'employer_or_school',
+        'family_or_friend',
+        'embassy_or_consulate',
+        'police_or_local_authority',
+      ],
+    }));
+    const messages = output.ready_to_send_messages.map((item) => item.message).join('\n');
+    expect(messages).toContain('Paris, France');
+    expect(messages).not.toMatch(/\[[A-Z][A-Z _/-]+\]/);
+  });
 });
 
 describe('Continuity Pack HTTP capability', () => {

@@ -91,6 +91,13 @@ function researchResult(query = 'photosynthesis'): ResearchSourceResult {
       canonical_url: 'https://doi.org/10.1000/keepflow.1',
       verification_status: 'crossref_registry_record_found',
       integrity_status: 'no_crossref_update_flag_at_retrieval_time',
+      quality_tier: 'standard_metadata_match',
+      quality_signals: {
+        provider_relevance_score: 42,
+        citation_count: 12,
+        metadata_completeness: 4,
+      },
+      selection_note: 'Registry metadata is verified; source quality and claims still require critical evaluation.',
       verified_at: NOW.toISOString(),
     }],
     portals: [{

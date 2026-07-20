@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { firstMoveRouter } from './routes/firstmove.js';
@@ -34,6 +35,20 @@ import {
   continuityPackPrepaymentGuard,
   continuityPackRouter,
 } from './routes/continuity-pack.js';
+import {
+  createArtifactCapacityLimiter,
+  createIdempotencyMiddleware,
+  createPaidRouteRateLimiter,
+} from './operational/limits.js';
+
+// Resolve bundled assets from the application location rather than the
+// process working directory. PM2/systemd and container entrypoints may launch
+// KeepFlow from another directory; the landing page must still load its CSS
+// and logo in those deployments.
+const PUBLIC_ASSETS_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../public',
+);
 
 export interface CreateAppOptions {
   /** Test/integration seam. Production uses the configured bounded providers. */
@@ -52,9 +67,19 @@ export function createApp(options: CreateAppOptions = {}) {
   // HTTPS resource instead of the container's internal HTTP connection.
   app.set('trust proxy', 1);
 
+  // Baseline response hardening for API, descriptor, and error responses. The
+  // landing page adds a stricter CSP below; keeping these headers here ensures
+  // JSON responses and parser errors receive the same browser protections.
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+  });
+
   // Landing-page assets are the only cacheable public responses. API output
   // remains no-store below because it can reflect caller-provided context.
-  app.use('/assets', express.static(path.resolve(process.cwd(), 'public'), {
+  app.use('/assets', express.static(PUBLIC_ASSETS_DIR, {
     dotfiles: 'deny',
     index: false,
     maxAge: '1h',
@@ -86,6 +111,7 @@ export function createApp(options: CreateAppOptions = {}) {
   // protects exact resource paths. Reject all paid-route aliases before any
   // route-specific guard so no spelling variant can reach a handler unpaid.
   app.use(rejectNonCanonicalPaidRouteAliases);
+  app.use(createPaidRouteRateLimiter());
 
   // Study Assist accepts at most a 1 MiB PDF encoded as JSON base64. Only the
   // exact paid path gets the larger transport ceiling; every other route keeps
@@ -124,6 +150,8 @@ export function createApp(options: CreateAppOptions = {}) {
   // customer sees an x402 challenge. Route handlers validate again as a
   // defense-in-depth boundary after payment verification.
   app.use(validatePaidRequestBeforePayment);
+  app.use(createIdempotencyMiddleware());
+  app.use(createArtifactCapacityLimiter());
 
   // Payments (x402 via the OKX SDK). Applied only to the paid route; /health
   // and / stay free. Off by default (pass-through). When enabled but OKX creds

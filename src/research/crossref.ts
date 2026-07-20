@@ -149,6 +149,12 @@ function issuedYear(value: unknown): number | null {
     : null;
 }
 
+function finiteNonnegative(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
 function mapCrossrefItem(
   item: unknown,
   verifiedAt: string,
@@ -172,22 +178,42 @@ function mapCrossrefItem(
   const venueValue = firstText(item['container-title']);
   const publisherValue = normalizeProviderText(item.publisher);
   const typeValue = normalizeProviderText(item.type);
+  const authors = authorNames(item.author)
+    .filter((name) => name.length <= 160)
+    .slice(0, 30);
+  const year = issuedYear(item.issued);
+  const venue = venueValue && venueValue.length <= 300 ? venueValue : null;
+  const publisher = publisherValue && publisherValue.length <= 300 ? publisherValue : null;
+  const relevanceScore = finiteNonnegative(item.score);
+  const citationCount = finiteNonnegative(item['is-referenced-by-count']);
+  const completeness = [authors.length > 0, year !== null, venue !== null, publisher !== null]
+    .filter(Boolean).length;
+  const qualityTier = completeness === 4 && (relevanceScore ?? 0) >= 20
+    ? 'stronger_metadata_match'
+    : completeness >= 3
+      ? 'standard_metadata_match'
+      : 'limited_metadata';
 
   return {
     provider: 'crossref',
     provider_id: doi,
     doi,
     title,
-    authors: authorNames(item.author)
-      .filter((name) => name.length <= 160)
-      .slice(0, 30),
-    issued_year: issuedYear(item.issued),
-    venue: venueValue && venueValue.length <= 300 ? venueValue : null,
-    publisher: publisherValue && publisherValue.length <= 300 ? publisherValue : null,
+    authors,
+    issued_year: year,
+    venue,
+    publisher,
     work_type: typeValue && typeValue.length <= 100 ? typeValue : 'journal-article',
     canonical_url: canonicalUrl,
     verification_status: 'crossref_registry_record_found',
     integrity_status: 'no_crossref_update_flag_at_retrieval_time',
+    quality_tier: qualityTier,
+    quality_signals: {
+      provider_relevance_score: relevanceScore,
+      citation_count: citationCount === null ? null : Math.floor(citationCount),
+      metadata_completeness: completeness,
+    },
+    selection_note: 'Registry metadata is verified; source quality and claims still require critical evaluation.',
     verified_at: verifiedAt,
   };
 }
@@ -201,7 +227,7 @@ function validContactEmail(value: string | undefined): string | null {
 export function buildCrossrefRequestUrl(input: ResearchSourceRequest): URL {
   const url = new URL(CROSSREF_WORKS_URL);
   url.searchParams.set('query.bibliographic', input.query);
-  url.searchParams.set('rows', '8');
+  url.searchParams.set('rows', '25');
   const filters = ['type:journal-article', 'has-update:0'];
   if (input.published_after_year !== undefined) {
     filters.push(`from-pub-date:${input.published_after_year}-01-01`);
@@ -335,7 +361,7 @@ export async function recommendResearchSources(
     const payload = await fetchCrossrefPayload(url, options);
     const verifiedAt = (options.now ?? (() => new Date()))().toISOString();
     const seen = new Set<string>();
-    const sources: VerifiedResearchSource[] = [];
+    const candidates: VerifiedResearchSource[] = [];
 
     for (const item of itemsFromResponse(payload)) {
       const mapped = mapCrossrefItem(item, verifiedAt);
@@ -343,9 +369,25 @@ export async function recommendResearchSources(
       const dedupeKey = mapped.doi.toLowerCase();
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
-      sources.push(mapped);
-      if (sources.length >= input.max_results) break;
+      candidates.push(mapped);
     }
+
+    const tierWeight = {
+      stronger_metadata_match: 2,
+      standard_metadata_match: 1,
+      limited_metadata: 0,
+    } as const;
+    const sources = candidates
+      .sort((left, right) => {
+        const leftScore = tierWeight[left.quality_tier] * 10_000
+          + (left.quality_signals.provider_relevance_score ?? 0) * 10
+          + Math.log1p(left.quality_signals.citation_count ?? 0);
+        const rightScore = tierWeight[right.quality_tier] * 10_000
+          + (right.quality_signals.provider_relevance_score ?? 0) * 10
+          + Math.log1p(right.quality_signals.citation_count ?? 0);
+        return rightScore - leftScore;
+      })
+      .slice(0, input.max_results);
 
     return {
       status: sources.length > 0 ? 'ok' : 'no_results',

@@ -70,10 +70,10 @@ describe('assemblePlan (deterministic)', () => {
     expect(out.incident_type).toBe('stolen_or_lost_phone');
     expect(out.runbook_version).toBe('1.2.0');
     expect(out.immediate_actions.map((action) => action.action).join(' ')).toMatch(
-      /trusted laptop.*official website.*freeze every missing card/i,
+      /trusted device.*official website.*freeze every missing card/i,
     );
     expect(out.immediate_actions.map((action) => action.action).join(' ')).toMatch(
-      /laptop connection still works/i,
+      /trusted connection remains available/i,
     );
     expect(out.questions).toContain(
       'Were any physical payment cards or identity documents stolen too?',
@@ -95,6 +95,15 @@ describe('assemblePlan (deterministic)', () => {
     expect(actions).toMatch(/official account-recovery page/i);
     expect(actions).not.toMatch(/use (?:the|your) phone/i);
     expect(validatePlan(out)).toEqual({ valid: true, errors: [] });
+  });
+
+  it('does not assume a stolen-phone victim still has a laptop or second device', async () => {
+    const out = await plan(
+      'My phone and wallet were stolen while travelling alone. I have no other device or internet.',
+    );
+    const actions = out.immediate_actions.map((action) => action.action).join('\n');
+    expect(actions).not.toMatch(/this trusted laptop|from this laptop|laptop connection/i);
+    expect(actions).toMatch(/borrowed phone|landline|trusted person|visit a branch|staffed provider/i);
   });
 });
 

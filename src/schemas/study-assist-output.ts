@@ -139,6 +139,28 @@ const CrossrefSourceSchema = z
     canonical_url: z.string().trim().min(1).max(300).url(),
     verification_status: z.literal('crossref_registry_record_found'),
     integrity_status: z.literal('no_crossref_update_flag_at_retrieval_time'),
+    quality_tier: z.enum([
+      'stronger_metadata_match',
+      'standard_metadata_match',
+      'limited_metadata',
+    ]).default('limited_metadata'),
+    quality_signals: z
+      .object({
+        provider_relevance_score: z.number().finite().nonnegative().nullable(),
+        citation_count: z.number().int().nonnegative().nullable(),
+        metadata_completeness: z.number().int().min(0).max(4),
+      })
+      .strict()
+      .default({
+        provider_relevance_score: null,
+        citation_count: null,
+        metadata_completeness: 0,
+      }),
+    selection_note: z.literal(
+      'Registry metadata is verified; source quality and claims still require critical evaluation.',
+    ).default(
+      'Registry metadata is verified; source quality and claims still require critical evaluation.',
+    ),
     verified_at: z.string().datetime(),
   })
   .strict()

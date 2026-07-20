@@ -194,7 +194,7 @@ export async function studyAssistPrepaymentGuard(
     req.body = {};
     res.locals[PREFLIGHT_LOCAL] = preflight;
     installCleanup(req, res);
-    if (!markPaidRouteBodyPrevalidated(res, req.method, req.path)) {
+    if (!markPaidRouteBodyPrevalidated(res, req.method, req.path, preflight)) {
       cleanupStudyAssist(req, res);
       res.status(500).json({ error: 'paid_route_prevalidation_failed' });
       return;

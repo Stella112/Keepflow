@@ -174,7 +174,7 @@ export const landingPageHtml = String.raw`<!doctype html>
       </section>
 
       <section class="section shell developer-section" id="developers">
-        <div class="developer-copy"><p class="eyebrow"><span></span>Built for people. Callable by agents.</p><h2>Eight focused endpoints.<br>One consistent standard.</h2><p>Every paid capability is available as a public HTTPS API protected by OKX x402 payments on X Layer.</p><div class="developer-actions"><a class="button button-primary" href="/service.json">Machine-readable service</a><a class="button button-secondary" href="https://github.com/Stella112/Keepflow">View source</a></div></div>
+        <div class="developer-copy"><p class="eyebrow"><span></span>Built for people. Callable by agents.</p><h2>Eight focused endpoints.<br>One consistent standard.</h2><p>Every paid capability is available as a public HTTPS API protected by OKX x402 payments on X Layer. Agents can inspect the complete request contracts before paying.</p><div class="developer-actions"><a class="button button-primary" href="/openapi.json">OpenAPI contracts</a><a class="button button-secondary" href="/service.json">Service JSON</a><a class="button button-secondary" href="https://github.com/Stella112/Keepflow">View source</a></div></div>
         <div class="endpoint-panel" aria-label="KeepFlow API endpoints">
           <div class="endpoint-head"><span>ENDPOINT</span><span>PER CALL</span></div><div class="endpoint-featured"><code>POST /v1/continuity-pack</code><span>0.05 USDT</span></div><div><code>POST /v1/daily-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/first-move</code><span>0.05 USDT</span></div><div><code>POST /v1/study-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/study-assist</code><span>0.05 USDT</span></div><div><code>POST /v1/work-handover</code><span>0.05 USDT</span></div><div><code>POST /v1/reminder-pack</code><span>0.05 USDT</span></div><div><code>POST /v1/presentation-pack</code><span>0.05 USDT</span></div>
         </div>
@@ -186,7 +186,7 @@ export const landingPageHtml = String.raw`<!doctype html>
     </main>
 
     <footer>
-      <div class="shell footer-grid"><a class="brand" href="#top"><span class="brand-mark"><img src="/assets/keepflow-logo.jpeg" alt=""></span><span>Keep<span>Flow</span></span></a><p>A lifestyle-continuity companion for everyday routines and disruptive moments.</p><div><a href="/health">Status</a><a href="/service.json">Service JSON</a><a href="https://github.com/Stella112/Keepflow">GitHub</a></div></div>
+      <div class="shell footer-grid"><a class="brand" href="#top"><span class="brand-mark"><img src="/assets/keepflow-logo.jpeg" alt=""></span><span>Keep<span>Flow</span></span></a><p>A lifestyle-continuity companion for everyday routines and disruptive moments.</p><div><a href="/ready">Readiness</a><a href="/openapi.json">OpenAPI</a><a href="/service.json">Service JSON</a><a href="https://github.com/Stella112/Keepflow">GitHub</a></div></div>
       <div class="shell footer-bottom"><span>© 2026 KeepFlow</span><span>Structured plans · Explicit unknowns · No credentials</span></div>
     </footer>
   </body>

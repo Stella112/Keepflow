@@ -8,7 +8,9 @@ moments with a clear, safe next step.
 
 The public root, `GET /`, is a responsive product landing page. The original
 machine-readable service descriptor is available at `GET /service.json`, while
-`GET /health` remains the minimal operational health response.
+`GET /openapi.json` publishes the exact request contract for every paid route.
+`GET /health` reports process liveness and `GET /ready` additionally checks that
+the configured OKX facilitator supports KeepFlow's X Layer payment scheme.
 
 The professional asset roadmap is specified in
 [`docs/ASSET_CREATION_ROADMAP.md`](docs/ASSET_CREATION_ROADMAP.md). Presentation
@@ -248,15 +250,27 @@ check current correction/retraction information, and follow course requirements
 before citing it. If Crossref is unavailable or finds no qualifying record,
 KeepFlow returns no invented fallback citation.
 
+KeepFlow evaluates up to 25 registry candidates before returning at most six.
+Results are ranked using Crossref's query-relevance score plus bounded metadata
+completeness and citation-count signals. Every result includes a transparent
+quality tier and the warning that registry verification does not validate the
+paper's methods or claims.
+
 ### Study Assist privacy and integrity
 
-KeepFlow itself is stateless: it does not retain uploads or conversations and
+KeepFlow has no user database: it does not durably retain uploads or conversations and
 sets `Cache-Control: no-store`. Before the payment step, it parses and bounds the
 material, rejects credential-shaped content, and masks direct email addresses,
 labelled phone numbers, and labelled student/learner/matriculation IDs. For a
 request that proceeds to payment, the raw body is cleared first; bounded
 sanitized data is held only for the active response and cleared on response
 finish/close. Mutable PDF bytes are zeroed on a best-effort basis.
+
+For safe network retries, callers may provide a high-entropy `Idempotency-Key`
+(24-128 permitted characters). A successful JSON result is retained only in
+process memory for 15 minutes so the same request can be replayed without a
+second payment; it is never written to disk and is removed on expiry or restart.
+Reusing the key with a different validated request returns `409`.
 
 Secret detection rejects passwords, private keys, payment-card data, OTPs,
 access tokens, and connection credentials without echoing their values. Name
