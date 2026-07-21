@@ -86,20 +86,28 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
   );
 
   const paidRoutes = Object.fromEntries(
-    X402_ROUTE_SPECS.map((route) => [
-      `${route.method} ${route.path}`,
-      {
+    X402_ROUTE_SPECS.map((route) => {
+      const extensions = createX402RouteExtensions(route, config.publicBaseUrl);
+      return [
+        `${route.method} ${route.path}`,
+        {
         accepts: {
           scheme: 'exact' as const,
           price: config.payments.priceUsd,
           network,
           payTo: config.payments.payToAddress!,
+          // Some OKX buyer releases discover the replay contract from the
+          // selected payment requirement rather than the top-level x402
+          // extensions object. Publish the identical contract in both places
+          // so request parameters survive quote -> sign -> paid replay.
+          extra: extensions,
         },
         description: route.description,
         mimeType: 'application/json' as const,
-        extensions: createX402RouteExtensions(route, config.publicBaseUrl),
+        extensions,
       },
-    ]),
+      ];
+    }),
   );
 
   const middleware = paymentMiddleware(

@@ -70,4 +70,17 @@ describe('OKX x402 discovery metadata', () => {
       expect(extensions.outputSchema.input.bodyType).toBe('json');
     }
   });
+
+  it('keeps replay metadata suitable for both top-level and payment-option publication', () => {
+    for (const route of PAID_ROUTE_SPECS) {
+      const metadata = createX402RouteExtensions(route, 'https://keepflow.site') as {
+        outputSchema: { input: { method: string; body: { required?: string[] } } };
+        openapi: { operationId: string };
+      };
+
+      expect(metadata.outputSchema.input.method).toBe('POST');
+      expect(metadata.outputSchema.input.body.required?.length).toBeGreaterThan(0);
+      expect(metadata.openapi.operationId).toBe(route.operationId);
+    }
+  });
 });
