@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import type { StudyAssistDependencies } from '../engine/study-assist.js';
 import { buildEmbeddedReminderPack } from '../engine/embedded-reminders.js';
 import { buildStudyFlow, validateStudyFlow } from '../engine/study-flow.js';
+import { normalizeJsonObjectField } from '../http/normalize-json-field.js';
 import { log } from '../observability/logger.js';
 import { markPaidRouteBodyPrevalidated } from '../payments/paid-routes.js';
 import { StudyServiceInputSchema } from '../schemas/study-service-input.js';
@@ -21,7 +22,7 @@ export async function studyServicePrepaymentGuard(
     next();
     return;
   }
-  const parsed = StudyServiceInputSchema.safeParse(req.body);
+  const parsed = StudyServiceInputSchema.safeParse(normalizeJsonObjectField(req.body, 'request'));
   if (!parsed.success) {
     res.status(400).json({
       error: 'invalid_request',

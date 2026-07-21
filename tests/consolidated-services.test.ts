@@ -122,6 +122,44 @@ describe('consolidated KeepFlow services', () => {
     expect(result.body.reminders.event_count).toBe(1);
   });
 
+  it('accepts the JSON-text request representation used by agent payment clients', async () => {
+    const request = {
+      target_role: 'Operations Coordinator',
+      job_description: 'Coordinate schedules, document procedures, track dependencies, communicate status, and improve reliable team handovers.',
+      candidate: {
+        name: 'KeepFlow Test User',
+        professional_summary_facts: ['Coordinated recurring operational tasks and documented repeatable workflows.'],
+        skills: ['Operations coordination', 'Documentation'],
+        experience: [{ organization: 'Independent Projects', role: 'Operations Coordinator', period: '2024-2026', achievements: ['Maintained action registers and delivery schedules.'] }],
+      },
+      truthfulness_acknowledged: true,
+    };
+    const result = await post(workCareerRouter, '/v1/work-career', {
+      mode: 'career',
+      request: JSON.stringify(request),
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.meta.claims_invented).toBe(false);
+    expect(result.body.artifacts.resume_pdf.bytes).toBeGreaterThan(1_000);
+  });
+
+  it('accepts JSON-text Study requests from agent payment clients', async () => {
+    const request = {
+      goal: 'Prepare for the biology exam',
+      planning_started_at: '2030-07-22T08:00:00+00:00',
+      timezone: 'UTC',
+      tasks: [{ id: 'bio-review', subject: 'Biology', title: 'Review cell biology', kind: 'revision' }],
+      available_windows: [{ id: 'session-one', starts_at: '2030-07-22T10:00:00+00:00', minutes: 60 }],
+      preferences: { preferred_session_minutes: 45, break_minutes: 10, energy_pattern: 'morning', internet_access: 'reliable', device_access: 'personal_computer', quiet_space: 'yes' },
+    };
+    const result = await post(createStudyRouter(), '/v1/study', {
+      mode: 'plan',
+      request: JSON.stringify(request),
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.sessions.length).toBeGreaterThan(0);
+  });
+
   it('Work & Career preserves handover facts and adds reminders for future deadlines', async () => {
     const result = await post(workCareerRouter, '/v1/work-career', {
       mode: 'handover',

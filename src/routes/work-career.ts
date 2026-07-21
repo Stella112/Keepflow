@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { buildCareerPack } from '../engine/career-pack.js';
 import { buildEmbeddedReminderPack } from '../engine/embedded-reminders.js';
 import { buildWorkHandover, preflightWorkHandover, validateWorkHandover } from '../engine/work-handover.js';
+import { normalizeJsonObjectField } from '../http/normalize-json-field.js';
 import { log } from '../observability/logger.js';
 import { markPaidRouteBodyPrevalidated } from '../payments/paid-routes.js';
 import type { CareerPackInput } from '../schemas/career-pack-input.js';
@@ -17,7 +18,7 @@ export function workCareerPrepaymentGuard(req: Request, res: Response, next: Nex
     next();
     return;
   }
-  const parsed = WorkCareerInputSchema.safeParse(req.body);
+  const parsed = WorkCareerInputSchema.safeParse(normalizeJsonObjectField(req.body, 'request'));
   if (!parsed.success) {
     res.status(400).json({ error: 'invalid_request', details: parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })) });
     return;
