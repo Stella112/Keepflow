@@ -6,6 +6,44 @@ import type { Config } from '../config.js';
 import { log } from '../observability/logger.js';
 import { PAID_ROUTE_SPECS } from './paid-routes.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import type { PaidRouteSpec } from './paid-routes.js';
+
+/**
+ * Describe the business request in the x402 challenge itself.
+ *
+ * OKX buyers use the Bazaar-compatible `outputSchema.input` declaration to
+ * determine both the HTTP verb and how the original business parameters must
+ * be carried on the paid replay.  An OpenAPI link on its own is useful to a
+ * human, but it is not sufficient for an autonomous buyer to reconstruct a
+ * nested POST body such as Continuity Pack's access profile.
+ */
+export function createX402RouteExtensions(
+  route: PaidRouteSpec,
+  publicBaseUrl: string,
+): Record<string, unknown> {
+  const bodySchema = zodToJsonSchema(route.inputSchema, {
+    target: 'openApi3',
+    $refStrategy: 'none',
+  });
+
+  return {
+    outputSchema: {
+      input: {
+        type: 'http',
+        method: route.method,
+        bodyType: 'json',
+        body: bodySchema,
+      },
+      output: {
+        type: 'json',
+      },
+    },
+    openapi: {
+      url: `${publicBaseUrl}/openapi.json`,
+      operationId: route.operationId,
+    },
+  };
+}
 
 /**
  * OKX x402 pay-per-call, via the official @okxweb3/x402-express SDK.
@@ -59,16 +97,7 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
         },
         description: route.description,
         mimeType: 'application/json' as const,
-        extensions: {
-          openapi: {
-            url: `${config.publicBaseUrl}/openapi.json`,
-            operationId: route.operationId,
-          },
-          inputSchema: zodToJsonSchema(route.inputSchema, {
-            target: 'openApi3',
-            $refStrategy: 'none',
-          }),
-        },
+        extensions: createX402RouteExtensions(route, config.publicBaseUrl),
       },
     ]),
   );
