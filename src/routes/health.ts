@@ -24,11 +24,11 @@ function buildServiceDescriptor() {
       : 'unavailable_until_configured',
     description:
       'A lifestyle continuity companion for everyday routines and disruptive ' +
-      'moments: Daily Flow supports adult meal and movement routines; First Move ' +
-      'orders digital-incident recovery; Study executes academic plans and provides ' +
+      'moments: Daily Flow supports adult meal and movement routines; First Move & Continuity ' +
+      'handles access-aware disruption recovery; Study executes academic plans and provides ' +
       'grounded learning, material explanation, and registry-verified source-metadata discovery; and ' +
-      'Work produces operational handovers. Reminder Pack turns future actions from ' +
-      'any service into importable calendar alerts without storing reminder data. ' +
+      'Work & Career produces operational handovers and truthful career assets. Relevant future actions ' +
+      'are automatically returned as importable calendar alerts without storing reminder data. ' +
       'Presentation Pack converts grounded Study or Work source material into a ' +
       'verified PowerPoint with speaker notes. Continuity Pack is the flagship ' +
       'orchestration capability: one access-aware request returns an action timeline, ' +
@@ -42,18 +42,20 @@ function buildServiceDescriptor() {
       openapi: 'GET /openapi.json',
       service_descriptor: 'GET /service.json',
       first_move: 'POST /v1/first-move  (JSON body: { "description": "..." })',
-      daily_flow: 'POST /v1/daily-flow  (JSON adult profile, constraints, and health screen)',
+      daily_flow: 'POST /v1/daily-flow  (JSON adult profile, constraints, health screen, and optional schedule)',
+      study: 'POST /v1/study  (one endpoint for academic planning, material learning, practice, and research)',
       study_flow: 'POST /v1/study-flow  (JSON academic goal, tasks, availability, and constraints)',
       study_assist: 'POST /v1/study-assist  (JSON study material or research query with explicit external-processing acknowledgement)',
       work_handover: 'POST /v1/work-handover  (JSON operational state, tasks, owners, and dependencies)',
+      work_career: 'POST /v1/work-career  (one endpoint for operational handovers or truthful resume and career assets)',
       reminder_pack: 'POST /v1/reminder-pack  (JSON future events converted to importable calendar alarms)',
       presentation_pack: 'POST /v1/presentation-pack  (JSON grounded Work or Study source items converted to a verified PPTX)',
       continuity_pack: 'POST /v1/continuity-pack  (JSON disruption and resource availability converted to an executable PDF/DOCX/ICS continuity pack)',
       privacy_safe_metrics: 'GET /metrics  (process-lifetime aggregate counters; no request or artifact content)',
     },
     services: [
-      { priority: 1, name: 'Daily Flow - Constraint-Aware Meal & Movement Checklist' },
-      { priority: 2, name: 'First Move - Ordered Incident Recovery' },
+      { priority: 1, name: 'First Move & Continuity', capabilities: ['access-aware recovery', 'messages', 'delegation', 'PDF/DOCX/ICS artifacts'] },
+      { priority: 2, name: 'KeepFlow Daily', capabilities: ['meal and movement planning', 'routines', 'integrated reminders'] },
       {
         priority: 3,
         name: 'KeepFlow Study - Academic Execution, Grounded Learning & Registry-Verified Research Metadata',
@@ -61,8 +63,8 @@ function buildServiceDescriptor() {
       },
       {
         priority: 4,
-        name: 'KeepFlow Work - Operational Handover',
-        capabilities: ['operational handover', 'grounded executive presentations'],
+        name: 'KeepFlow Work & Career',
+        capabilities: ['operational handover', 'truthful resumes and cover letters', 'career preparation', 'grounded executive presentations'],
       },
     ],
     companion_capabilities: [
@@ -123,7 +125,8 @@ healthRouter.get('/health', (_req, res) => {
       : 'unavailable_until_configured',
     payments_enabled: config.payments.enabled,
     service_count: 4,
-    paid_capability_count: 8,
+    paid_capability_count: 10,
+    marketplace_service_count: 4,
     reminder_delivery_mode: 'calendar_import',
   });
 });

@@ -48,6 +48,8 @@ import {
 } from './context/google-maps-provider.js';
 import { createContextEnrichmentAvailabilityGuard } from './context/enrichment-guard.js';
 import { createModelClassifier } from './engine/model-classifier.js';
+import { createStudyRouter, studyServicePrepaymentGuard } from './routes/study.js';
+import { workCareerPrepaymentGuard, workCareerRouter } from './routes/work-career.js';
 
 // Resolve bundled assets from the application location rather than the
 // process working directory. PM2/systemd and container entrypoints may launch
@@ -132,7 +134,7 @@ export function createApp(options: CreateAppOptions = {}) {
   // the original 64 KiB bound.
   const studyAssistJson = express.json({ limit: '1500kb' });
   app.use((req, res, next) => {
-    if (req.method === 'POST' && req.path === '/v1/study-assist') {
+    if (req.method === 'POST' && (req.path === '/v1/study-assist' || req.path === '/v1/study')) {
       studyAssistJson(req, res, next);
       return;
     }
@@ -171,10 +173,12 @@ export function createApp(options: CreateAppOptions = {}) {
   // Material is locally parsed, screened, masked and cleared before the
   // generic paid validator. External providers remain behind payment.
   app.post('/v1/study-assist', studyAssistPrepaymentGuard);
+  app.post('/v1/study', studyServicePrepaymentGuard);
 
   // Work's raw nested credential/misuse scan must run before schema parsing
   // and before x402 so a prohibited handover never produces a payment prompt.
   app.post('/v1/work-handover', workHandoverPrepaymentGuard);
+  app.post('/v1/work-career', workCareerPrepaymentGuard);
 
   // Reminder Pack rejects stale, malformed, or secret-bearing events before
   // payment and reuses the exact validated event set after settlement.
@@ -220,7 +224,9 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(createDailyFlowRouter(contextRoutingProvider));
   app.use(studyFlowRouter);
   app.use(createStudyAssistRouter(options.studyAssistDependencies));
+  app.use(createStudyRouter(options.studyAssistDependencies));
   app.use(workHandoverRouter);
+  app.use(workCareerRouter);
   app.use(reminderPackRouter);
   app.use(createPresentationPackRouter(options.presentationPlanner));
   app.use(createContinuityPackRouter(contextRoutingProvider));

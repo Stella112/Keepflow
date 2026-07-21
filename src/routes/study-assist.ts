@@ -236,7 +236,15 @@ export function createStudyAssistRouter(
   router.post(
     '/v1/study-assist',
     studyAssistPrepaymentGuard,
-    async (req: Request, res: Response) => {
+    createStudyAssistHandler(dependencies),
+  );
+  return router;
+}
+
+export function createStudyAssistHandler(
+  dependencies: StudyAssistDependencies = defaultDependencies(),
+) {
+  return async (req: Request, res: Response): Promise<void> => {
       const started = Date.now();
       const preflight = res.locals[PREFLIGHT_LOCAL] as StudyAssistPreflightData | undefined;
       if (!preflight) {
@@ -269,7 +277,5 @@ export function createStudyAssistRouter(
       } finally {
         cleanupStudyAssist(req, res);
       }
-    },
-  );
-  return router;
+  };
 }

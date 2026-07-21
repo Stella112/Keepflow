@@ -52,19 +52,21 @@ function run(
 }
 
 describe('paid-route registry', () => {
-  it('contains all eight exact paid capabilities at the shared five-cent default', () => {
+  it('contains all ten exact paid capabilities at the shared five-cent default', () => {
     expect(PAID_ROUTE_KEYS).toEqual([
       'POST /v1/first-move',
       'POST /v1/daily-flow',
+      'POST /v1/study',
       'POST /v1/study-flow',
       'POST /v1/study-assist',
+      'POST /v1/work-career',
       'POST /v1/work-handover',
       'POST /v1/reminder-pack',
       'POST /v1/presentation-pack',
       'POST /v1/continuity-pack',
     ]);
-    expect(PAID_ROUTE_SPECS).toHaveLength(8);
-    expect(X402_DISCOVERY_ROUTE_SPECS).toHaveLength(8);
+    expect(PAID_ROUTE_SPECS).toHaveLength(10);
+    expect(X402_DISCOVERY_ROUTE_SPECS).toHaveLength(10);
     expect(loadConfig().payments.priceUsd).toBe('$0.05');
 
     expect(findPaidRoute('POST', '/v1/study-assist')).toMatchObject({

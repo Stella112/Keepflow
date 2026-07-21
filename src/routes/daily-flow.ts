@@ -7,6 +7,11 @@ import { createGoogleMapsProvider } from '../context/google-maps-provider.js';
 import { contextInputForService } from '../context/service-context.js';
 import { buildContextRouting } from '../engine/context-routing.js';
 import { config } from '../config.js';
+import { buildEmbeddedReminderPack } from '../engine/embedded-reminders.js';
+
+function afterMinutes(anchor: string, minutes: number): string {
+  return new Date(Date.parse(anchor) + minutes * 60_000).toISOString();
+}
 
 /**
  * Daily Flow is deterministic and stateless. Payment is handled upstream by
@@ -33,6 +38,37 @@ router.post('/v1/daily-flow', async (req: Request, res: Response) => {
 
   try {
     let output = buildDailyFlow(parsed.data);
+    if (parsed.data.schedule) {
+      const events = Array.from({ length: parsed.data.schedule.days }, (_, day) => [
+        {
+          id: `daily-check-in-${day + 1}`,
+          title: 'KeepFlow daily check-in',
+          starts_at: afterMinutes(parsed.data.schedule!.starts_at, day * 1_440),
+          duration_minutes: 10,
+          alert_minutes_before: 10,
+          description: 'Review today’s meal, hydration, movement, and wellbeing checklist.',
+          source_service: 'daily_flow' as const,
+        },
+        {
+          id: `daily-movement-${day + 1}`,
+          title: 'KeepFlow movement block',
+          starts_at: afterMinutes(
+            parsed.data.schedule!.starts_at,
+            day * 1_440 + parsed.data.schedule!.movement_offset_minutes,
+          ),
+          duration_minutes: parsed.data.constraints.minutes_available,
+          alert_minutes_before: 30,
+          description: 'Use the movement option selected in your Daily Flow plan.',
+          source_service: 'daily_flow' as const,
+        },
+      ]).flat();
+      const reminderPack = buildEmbeddedReminderPack({
+        calendarName: 'KeepFlow Daily',
+        timezone: parsed.data.schedule.timezone,
+        events,
+      });
+      if (reminderPack) output = { ...output, reminder_pack: reminderPack };
+    }
     if (parsed.data.real_world_context) {
       try {
         const contextInput = contextInputForService({

@@ -121,7 +121,7 @@ export const landingPageHtml = String.raw`<!doctype html>
 
           <article class="service-card first-card">
             <div class="service-top"><span class="service-number">02</span><span class="service-glyph">F</span></div>
-            <div><p class="service-kicker">FIRST MOVE</p><h3>Know what to do when things go wrong.</h3><p>Ordered, safety-first recovery after a stolen phone, account takeover, lost authenticator, or exposed wallet secret.</p><div class="chips"><span>Prioritized</span><span>Conditional</span><span>Safety-first</span></div></div>
+            <div><p class="service-kicker">FIRST MOVE &amp; CONTINUITY</p><h3>Know what to do when things go wrong.</h3><p>Access-aware recovery plans with ordered actions, ready-to-send messages, delegation cards, nearby help when permitted, and PDF/DOCX/ICS files.</p><div class="chips"><span>Prioritized</span><span>Access-aware</span><span>Executable</span></div></div>
           </article>
 
           <article class="service-card study-card">
@@ -134,14 +134,14 @@ export const landingPageHtml = String.raw`<!doctype html>
 
           <article class="service-card work-card">
             <div class="service-top"><span class="service-number">04</span><span class="service-glyph">W</span></div>
-            <div><p class="service-kicker">KEEPFLOW WORK</p><h3>Hand work over without losing the thread.</h3><p>Operational handovers that preserve ownership, priorities, blockers, dependencies, risks, decisions, and next actions.</p><div class="chips"><span>Ownership</span><span>Risks</span><span>Next actions</span></div></div>
+            <div><p class="service-kicker">KEEPFLOW WORK &amp; CAREER</p><h3>Move your work—and your career—forward.</h3><p>Operational handovers, truthful resumes, cover letters, transparent job-keyword analysis, interview preparation, and executive-ready assets.</p><div class="chips"><span>Handovers</span><span>Career assets</span><span>Documents</span></div></div>
           </article>
         </div>
 
         <aside class="companion-band">
           <div class="companion-icon" aria-hidden="true"><span>⌁</span></div>
-          <div><p class="service-kicker">COMPANION CAPABILITY</p><h3>Plans that can follow you into your calendar.</h3><p>Reminder Pack converts future actions from any KeepFlow service into importable calendar events with alerts—without storing a reminder history.</p></div>
-          <a href="#developers">Calendar Reminder Pack <span aria-hidden="true">→</span></a>
+          <div><p class="service-kicker">INCLUDED CAPABILITY</p><h3>Future actions follow you into your calendar.</h3><p>When a result contains scheduled actions, KeepFlow includes importable calendar events and alerts automatically—without a second purchase or stored reminder history.</p></div>
+          <a href="#developers">Integrated reminders <span aria-hidden="true">→</span></a>
         </aside>
         <aside class="companion-band flagship-band">
           <div class="companion-icon" aria-hidden="true"><span>K</span></div>
@@ -179,9 +179,9 @@ export const landingPageHtml = String.raw`<!doctype html>
       </section>
 
       <section class="section shell developer-section" id="developers">
-        <div class="developer-copy"><p class="eyebrow"><span></span>Built for people. Callable by agents.</p><h2>Eight focused endpoints.<br>One consistent standard.</h2><p>Every paid capability is available as a public HTTPS API protected by OKX x402 payments on X Layer. Agents can inspect the complete request contracts before paying.</p><div class="developer-actions"><a class="button button-primary" href="/openapi.json">OpenAPI contracts</a><a class="button button-secondary" href="/service.json">Service JSON</a><a class="button button-secondary" href="https://github.com/Stella112/Keepflow">View source</a></div></div>
+        <div class="developer-copy"><p class="eyebrow"><span></span>Built for people. Callable by agents.</p><h2>Four clear front doors.<br>One consistent standard.</h2><p>Each public service is a paid HTTPS API protected by OKX x402 payments on X Layer. Specialist endpoints remain available for compatibility, while the marketplace presents four complete outcomes.</p><div class="developer-actions"><a class="button button-primary" href="/openapi.json">OpenAPI contracts</a><a class="button button-secondary" href="/service.json">Service JSON</a><a class="button button-secondary" href="https://github.com/Stella112/Keepflow">View source</a></div></div>
         <div class="endpoint-panel" aria-label="KeepFlow API endpoints">
-          <div class="endpoint-head"><span>ENDPOINT</span><span>PER CALL</span></div><div class="endpoint-featured"><code>POST /v1/continuity-pack</code><span>0.05 USDT</span></div><div><code>POST /v1/daily-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/first-move</code><span>0.05 USDT</span></div><div><code>POST /v1/study-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/study-assist</code><span>0.05 USDT</span></div><div><code>POST /v1/work-handover</code><span>0.05 USDT</span></div><div><code>POST /v1/reminder-pack</code><span>0.05 USDT</span></div><div><code>POST /v1/presentation-pack</code><span>0.05 USDT</span></div>
+          <div class="endpoint-head"><span>PUBLIC SERVICE</span><span>PER CALL</span></div><div class="endpoint-featured"><code>POST /v1/continuity-pack</code><span>0.05 USDT</span></div><div><code>POST /v1/daily-flow</code><span>0.05 USDT</span></div><div><code>POST /v1/study</code><span>0.05 USDT</span></div><div><code>POST /v1/work-career</code><span>0.05 USDT</span></div>
         </div>
       </section>
 

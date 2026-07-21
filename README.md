@@ -14,17 +14,18 @@ the configured OKX facilitator supports KeepFlow's X Layer payment scheme.
 
 The professional asset roadmap is specified in
 [`docs/ASSET_CREATION_ROADMAP.md`](docs/ASSET_CREATION_ROADMAP.md). Presentation
-Pack is live, and Continuity Pack now creates bounded PDF and DOCX briefs. General
-office-document generation, XLSX, career, and video outputs remain roadmap items.
+Pack and Continuity Pack are live, and Work & Career now creates source-faithful
+resume DOCX/PDF files, cover letters, keyword comparisons, and interview prompts.
+General office-document generation, XLSX, and video outputs remain roadmap items.
 
-It currently exposes four core paid, stateless services through eight endpoints.
-Reminder Pack, Continuity Pack, and Context & Routing are cross-service companion capabilities, not
-additional core services:
+It presents four core paid, stateless services. Specialist endpoints remain
+available for compatibility, while reminders, presentations, and Context & Routing
+operate as supporting capabilities rather than separate marketplace choices:
 
-- **Daily Flow - Constraint-Aware Meal & Movement Checklist**
-- **First Move - Ordered Incident Recovery**
+- **First Move & Continuity - Access-Aware Recovery + PDF/DOCX/ICS**
+- **KeepFlow Daily - Constraint-Aware Meals, Movement & Integrated Reminders**
 - **KeepFlow Study - Academic Execution, Grounded Learning & Research Support**
-- **KeepFlow Work - Operational Handover**
+- **KeepFlow Work & Career - Handovers, Resumes, Cover Letters & Career Support**
 - **Reminder Pack - Importable Calendar Alerts** *(companion capability)*
 - **Presentation Pack - Grounded PowerPoint + Speaker Notes** *(shared Study/Work capability)*
 - **Continuity Pack - Access-Aware Actions + PDF/DOCX/ICS** *(flagship orchestration capability)*

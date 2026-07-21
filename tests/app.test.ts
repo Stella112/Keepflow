@@ -90,8 +90,10 @@ describe('payment configuration', () => {
     expect(PAID_ROUTE_KEYS).toEqual([
       'POST /v1/first-move',
       'POST /v1/daily-flow',
+      'POST /v1/study',
       'POST /v1/study-flow',
       'POST /v1/study-assist',
+      'POST /v1/work-career',
       'POST /v1/work-handover',
       'POST /v1/reminder-pack',
       'POST /v1/presentation-pack',

@@ -31,7 +31,7 @@ describe('KeepFlow service descriptors', () => {
       expect(body).toContain('FIRST MOVE');
       expect(body).toContain('KEEPFLOW STUDY');
       expect(body).toContain('KEEPFLOW WORK');
-      expect(body).toContain('Calendar Reminder Pack');
+      expect(body).toContain('Integrated reminders');
       expect(body).toContain('CONTINUITY PACK');
       expect(body).toContain('CONTEXT &amp; ROUTING');
       expect(body).toContain('No phone');
@@ -58,7 +58,7 @@ describe('KeepFlow service descriptors', () => {
       };
 
       expect(response.status).toBe(200);
-      expect(body.version).toBe('0.8.0');
+      expect(body.version).toBe('0.9.0');
       expect(body.endpoints.study_assist).toContain('POST /v1/study-assist');
       expect(body.endpoints.reminder_pack).toContain('POST /v1/reminder-pack');
       expect(body.endpoints.presentation_pack).toContain('POST /v1/presentation-pack');
@@ -101,9 +101,10 @@ describe('KeepFlow service descriptors', () => {
       expect(response.status).toBe(200);
       expect(body).toMatchObject({
         status: 'ok',
-        version: '0.8.0',
+        version: '0.9.0',
         service_count: 4,
-        paid_capability_count: 8,
+        paid_capability_count: 10,
+        marketplace_service_count: 4,
         reminder_delivery_mode: 'calendar_import',
         study_tutor_mode: config.studyAssistant.enabled
           ? 'grounded_ai_configured'
@@ -118,7 +119,7 @@ describe('KeepFlow service descriptors', () => {
       const openApi = await openApiResponse.json() as any;
       expect(openApiResponse.status).toBe(200);
       expect(openApi.openapi).toBe('3.1.0');
-      expect(Object.keys(openApi.paths)).toHaveLength(8);
+      expect(Object.keys(openApi.paths)).toHaveLength(10);
       expect(openApi.paths['/v1/context-routing']).toBeUndefined();
       expect(openApi.paths['/v1/daily-flow'].post.requestBody.content['application/json'].schema
         .properties.real_world_context).toMatchObject({ type: 'object' });

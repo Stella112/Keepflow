@@ -64,6 +64,15 @@ export const DailyFlowInputSchema = z
       })
       .strict()
       .default({}),
+    schedule: z
+      .object({
+        timezone: z.string().trim().min(1).max(64),
+        starts_at: z.string().datetime({ offset: true }),
+        days: z.number().int().min(1).max(14).default(7),
+        movement_offset_minutes: z.number().int().min(30).max(1_380).default(600),
+      })
+      .strict()
+      .optional(),
     real_world_context: ContextEnrichmentRequestSchema.optional(),
   })
   .strict();

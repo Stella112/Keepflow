@@ -1,8 +1,8 @@
 # KeepFlow Asset Creation Roadmap
 
-Status: Phase 1 Presentation Pack and Continuity Pack's bounded PDF/DOCX brief
-exports are implemented; general-purpose office, career, and video phases remain
-planned.
+Status: Presentation Pack, Continuity Pack's bounded PDF/DOCX brief exports, and
+the truthful Career Pack resume DOCX/PDF workflow are implemented. General-purpose
+office, spreadsheet, and video phases remain planned.
 
 ## Product goal
 

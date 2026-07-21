@@ -8,6 +8,8 @@ import { StudyAssistInputSchema } from '../schemas/study-assist-input.js';
 import { ReminderPackInputSchema } from '../schemas/reminder-pack-input.js';
 import { PresentationPackInputSchema } from '../schemas/presentation-pack-input.js';
 import { ContinuityPackInputSchema } from '../schemas/continuity-pack-input.js';
+import { StudyServiceInputSchema } from '../schemas/study-service-input.js';
+import { WorkCareerInputSchema } from '../schemas/work-career-input.js';
 import { containsSecretShape } from '../security/redact-secrets.js';
 import { createHash } from 'node:crypto';
 
@@ -102,6 +104,14 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
   },
   {
     method: 'POST',
+    path: '/v1/study',
+    description: 'KeepFlow Study - Planning, Grounded Learning, Research and Reminders',
+    operationId: 'createKeepFlowStudyResult',
+    inputSchema: StudyServiceInputSchema,
+    bodyValidation: 'prevalidated_body',
+  },
+  {
+    method: 'POST',
     path: '/v1/study-flow',
     description: 'KeepFlow Study - Academic Execution',
     operationId: 'createStudyFlowPlan',
@@ -115,6 +125,14 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
     description: 'KeepFlow Study - Grounded Learning and Verified Research Support',
     operationId: 'createStudyAssistPack',
     inputSchema: StudyAssistInputSchema,
+    bodyValidation: 'prevalidated_body',
+  },
+  {
+    method: 'POST',
+    path: '/v1/work-career',
+    description: 'KeepFlow Work & Career - Handovers, Career Assets and Reminders',
+    operationId: 'createKeepFlowWorkCareerResult',
+    inputSchema: WorkCareerInputSchema,
     bodyValidation: 'prevalidated_body',
   },
   {

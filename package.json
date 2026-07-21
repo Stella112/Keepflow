@@ -1,6 +1,6 @@
 {
   "name": "keepflow-agent",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "description": "KeepFlow lifestyle continuity companion for daily routines, incident recovery, academic planning and grounded study support, operational handover, and calendar reminders.",
   "type": "module",
