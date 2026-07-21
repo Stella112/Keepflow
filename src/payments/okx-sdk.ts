@@ -45,6 +45,24 @@ export function createX402RouteExtensions(
   };
 }
 
+export function createX402UnpaidResponseBody(route: X402RouteSpec): {
+  contentType: 'application/json';
+  body: { inputSchema: Record<string, unknown>; required: string[] };
+} {
+  const inputSchema = zodToJsonSchema(route.inputSchema, {
+    target: 'openApi3',
+    $refStrategy: 'none',
+  }) as Record<string, unknown>;
+  const required = Array.isArray(inputSchema.required)
+    ? inputSchema.required.filter((item): item is string => typeof item === 'string')
+    : [];
+
+  return {
+    contentType: 'application/json',
+    body: { inputSchema, required },
+  };
+}
+
 /**
  * OKX x402 pay-per-call, via the official @okxweb3/x402-express SDK.
  *
@@ -104,6 +122,10 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
         },
         description: route.description,
         mimeType: 'application/json' as const,
+        // The current OKX CLI also supports merchant-declared input schemas
+        // in the unpaid 402 JSON body. This fallback keeps autonomous clients
+        // from losing business parameters even when they ignore extensions.
+        unpaidResponseBody: () => createX402UnpaidResponseBody(route),
         extensions,
       },
       ];

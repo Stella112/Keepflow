@@ -3,7 +3,10 @@ import {
   PAID_ROUTE_SPECS,
   X402_DISCOVERY_ROUTE_SPECS,
 } from '../src/payments/paid-routes.js';
-import { createX402RouteExtensions } from '../src/payments/okx-sdk.js';
+import {
+  createX402RouteExtensions,
+  createX402UnpaidResponseBody,
+} from '../src/payments/okx-sdk.js';
 
 describe('OKX x402 discovery metadata', () => {
   it('declares a replayable JSON POST body for every paid route', () => {
@@ -82,5 +85,18 @@ describe('OKX x402 discovery metadata', () => {
       expect(metadata.outputSchema.input.body.required?.length).toBeGreaterThan(0);
       expect(metadata.openapi.operationId).toBe(route.operationId);
     }
+  });
+
+  it('publishes required business fields in the unpaid JSON compatibility body', () => {
+    const route = PAID_ROUTE_SPECS.find((candidate) => candidate.path === '/v1/first-move');
+    expect(route).toBeDefined();
+
+    const response = createX402UnpaidResponseBody(route!);
+    expect(response.contentType).toBe('application/json');
+    expect(response.body.required).toEqual(['description']);
+    expect(response.body.inputSchema).toMatchObject({
+      type: 'object',
+      properties: { description: { type: 'string' } },
+    });
   });
 });
