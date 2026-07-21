@@ -152,16 +152,15 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
   },
 ] as const;
 
-export const X402_DISCOVERY_ROUTE_SPECS: readonly X402DiscoveryRouteSpec[] = [
-  {
+export const X402_DISCOVERY_ROUTE_SPECS: readonly X402DiscoveryRouteSpec[] =
+  PAID_ROUTE_SPECS.map((route) => ({
     method: 'GET',
     replayMethod: 'POST',
-    path: '/v1/continuity-pack',
-    description: 'KeepFlow - Access-Aware Executable Continuity Pack',
-    operationId: 'createContinuityPack',
-    inputSchema: ContinuityPackInputSchema,
-  },
-] as const;
+    path: route.path,
+    description: route.description,
+    operationId: route.operationId,
+    inputSchema: route.inputSchema,
+  }));
 
 /** Routes protected by x402, including validator-only discovery aliases. */
 export const X402_ROUTE_SPECS: readonly X402RouteSpec[] = [

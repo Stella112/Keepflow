@@ -5,6 +5,7 @@ import {
   PAID_ROUTE_KEYS,
   PAID_ROUTE_PREVALIDATION_LOCAL,
   PAID_ROUTE_SPECS,
+  X402_DISCOVERY_ROUTE_SPECS,
   findPaidRoute,
   findX402Route,
   findPaidRouteAlias,
@@ -63,6 +64,7 @@ describe('paid-route registry', () => {
       'POST /v1/continuity-pack',
     ]);
     expect(PAID_ROUTE_SPECS).toHaveLength(8);
+    expect(X402_DISCOVERY_ROUTE_SPECS).toHaveLength(8);
     expect(loadConfig().payments.priceUsd).toBe('$0.05');
 
     expect(findPaidRoute('POST', '/v1/study-assist')).toMatchObject({
@@ -120,14 +122,16 @@ describe('paid-route registry', () => {
     paidReplay.headers = { 'payment-signature': 'signed' };
     expect(isUnpaidX402DiscoveryProbe(paidReplay)).toBe(false);
 
-    const marketplaceProbe = request('GET', '/v1/continuity-pack');
-    marketplaceProbe.headers = {};
-    expect(findPaidRoute('GET', '/v1/continuity-pack')).toBeUndefined();
-    expect(findX402Route('GET', '/v1/continuity-pack')).toMatchObject({
-      replayMethod: 'POST',
-      operationId: 'createContinuityPack',
-    });
-    expect(isUnpaidX402DiscoveryProbe(marketplaceProbe)).toBe(true);
+    for (const route of PAID_ROUTE_SPECS) {
+      const marketplaceProbe = request('GET', route.path);
+      marketplaceProbe.headers = {};
+      expect(findPaidRoute('GET', route.path)).toBeUndefined();
+      expect(findX402Route('GET', route.path)).toMatchObject({
+        replayMethod: 'POST',
+        operationId: route.operationId,
+      });
+      expect(isUnpaidX402DiscoveryProbe(marketplaceProbe)).toBe(true);
+    }
 
     const paidGet = request('GET', '/v1/continuity-pack');
     paidGet.headers = { 'payment-signature': 'signed' };

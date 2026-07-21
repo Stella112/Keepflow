@@ -58,14 +58,16 @@ describe('OKX x402 discovery metadata', () => {
     expect(body.properties.access).toBeDefined();
   });
 
-  it('advertises POST replay semantics from the OKX GET discovery alias', () => {
-    const route = X402_DISCOVERY_ROUTE_SPECS[0];
-    const extensions = createX402RouteExtensions(route, 'https://keepflow.site') as {
-      outputSchema: { input: { method: string; bodyType: string } };
-    };
+  it('advertises POST replay semantics from every OKX GET discovery alias', () => {
+    expect(X402_DISCOVERY_ROUTE_SPECS).toHaveLength(PAID_ROUTE_SPECS.length);
+    for (const route of X402_DISCOVERY_ROUTE_SPECS) {
+      const extensions = createX402RouteExtensions(route, 'https://keepflow.site') as {
+        outputSchema: { input: { method: string; bodyType: string } };
+      };
 
-    expect(route.method).toBe('GET');
-    expect(extensions.outputSchema.input.method).toBe('POST');
-    expect(extensions.outputSchema.input.bodyType).toBe('json');
+      expect(route.method).toBe('GET');
+      expect(extensions.outputSchema.input.method).toBe('POST');
+      expect(extensions.outputSchema.input.bodyType).toBe('json');
+    }
   });
 });
