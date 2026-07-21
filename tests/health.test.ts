@@ -33,6 +33,7 @@ describe('KeepFlow service descriptors', () => {
       expect(body).toContain('KEEPFLOW WORK');
       expect(body).toContain('Calendar Reminder Pack');
       expect(body).toContain('CONTINUITY PACK');
+      expect(body).toContain('CONTEXT &amp; ROUTING');
       expect(body).toContain('No phone');
       expect(body).toContain('<span>PDF</span><span>DOCX</span><span>ICS</span>');
       expect(body).toContain('/assets/keepflow-logo.jpeg');
@@ -57,7 +58,7 @@ describe('KeepFlow service descriptors', () => {
       };
 
       expect(response.status).toBe(200);
-      expect(body.version).toBe('0.7.1');
+      expect(body.version).toBe('0.8.0');
       expect(body.endpoints.study_assist).toContain('POST /v1/study-assist');
       expect(body.endpoints.reminder_pack).toContain('POST /v1/reminder-pack');
       expect(body.endpoints.presentation_pack).toContain('POST /v1/presentation-pack');
@@ -68,6 +69,9 @@ describe('KeepFlow service descriptors', () => {
       );
       expect(body.companion_capabilities).toContain(
         'stateless calendar reminder packs with importable alerts',
+      );
+      expect(body.companion_capabilities).toContain(
+        'consent-based live place discovery embedded into relevant Daily Flow, First Move, and Continuity Pack responses',
       );
       expect(body.services).toHaveLength(4);
       expect(body.services.filter((service) => service.name.includes('KeepFlow Study')))
@@ -97,7 +101,7 @@ describe('KeepFlow service descriptors', () => {
       expect(response.status).toBe(200);
       expect(body).toMatchObject({
         status: 'ok',
-        version: '0.7.1',
+        version: '0.8.0',
         service_count: 4,
         paid_capability_count: 8,
         reminder_delivery_mode: 'calendar_import',
@@ -115,6 +119,13 @@ describe('KeepFlow service descriptors', () => {
       expect(openApiResponse.status).toBe(200);
       expect(openApi.openapi).toBe('3.1.0');
       expect(Object.keys(openApi.paths)).toHaveLength(8);
+      expect(openApi.paths['/v1/context-routing']).toBeUndefined();
+      expect(openApi.paths['/v1/daily-flow'].post.requestBody.content['application/json'].schema
+        .properties.real_world_context).toMatchObject({ type: 'object' });
+      expect(openApi.paths['/v1/first-move'].post.requestBody.content['application/json'].schema
+        .properties.real_world_context).toMatchObject({ type: 'object' });
+      expect(openApi.paths['/v1/continuity-pack'].post.requestBody.content['application/json'].schema
+        .properties.real_world_context).toMatchObject({ type: 'object' });
       expect(openApi.paths['/v1/continuity-pack'].post.requestBody.content['application/json'].schema)
         .toMatchObject({ type: 'object', additionalProperties: false });
       expect(openApi.paths['/v1/first-move'].post.operationId).toBe('createFirstMovePlan');

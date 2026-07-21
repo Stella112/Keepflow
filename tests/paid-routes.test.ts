@@ -7,6 +7,7 @@ import {
   PAID_ROUTE_SPECS,
   findPaidRoute,
   findPaidRouteAlias,
+  isUnpaidX402DiscoveryProbe,
   markPaidRouteBodyPrevalidated,
   rejectNonCanonicalPaidRouteAliases,
   validatePaidRequestBeforePayment,
@@ -99,6 +100,28 @@ describe('paid-route registry', () => {
       error: 'non_canonical_paid_route',
       canonical_path: '/v1/study-assist',
     });
+  });
+
+  it('recognizes only empty unsigned canonical requests as x402 discovery probes', () => {
+    const probe = request('POST', '/v1/continuity-pack');
+    probe.headers = {};
+    expect(isUnpaidX402DiscoveryProbe(probe)).toBe(true);
+
+    const emptyJsonRequest = request('POST', '/v1/continuity-pack', {});
+    emptyJsonRequest.headers = {};
+    expect(isUnpaidX402DiscoveryProbe(emptyJsonRequest)).toBe(false);
+
+    const realRequest = request('POST', '/v1/continuity-pack', { description: 'Help me.' });
+    realRequest.headers = {};
+    expect(isUnpaidX402DiscoveryProbe(realRequest)).toBe(false);
+
+    const paidReplay = request('POST', '/v1/continuity-pack', {});
+    paidReplay.headers = { 'payment-signature': 'signed' };
+    expect(isUnpaidX402DiscoveryProbe(paidReplay)).toBe(false);
+
+    const wrongMethod = request('GET', '/v1/continuity-pack');
+    wrongMethod.headers = {};
+    expect(isUnpaidX402DiscoveryProbe(wrongMethod)).toBe(false);
   });
 });
 

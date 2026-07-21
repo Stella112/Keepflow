@@ -148,6 +148,11 @@ export const landingPageHtml = String.raw`<!doctype html>
           <div><p class="service-kicker">FLAGSHIP ORCHESTRATION</p><h3>Continuity Pack handles the workflow, not just the explanation.</h3><p>One access-aware request returns immediate actions, message scripts, delegation cards, importable reminders, and printable PDF/DOCX briefs.</p></div>
           <a href="#continuity-demo">See the scenario <span aria-hidden="true">→</span></a>
         </aside>
+        <aside class="companion-band">
+          <div class="companion-icon" aria-hidden="true"><span>↗</span></div>
+          <div><p class="service-kicker">CONTEXT &amp; ROUTING</p><h3>Know where to go, not only what to do.</h3><p>With explicit location permission, KeepFlow can rank nearby real-world places and provider routes while clearly labeling live facts, timestamps, and anything it could not verify.</p></div>
+          <a href="#developers">Real-world discovery <span aria-hidden="true">→</span></a>
+        </aside>
       </section>
 
       <section class="section process-section" id="how-it-works">

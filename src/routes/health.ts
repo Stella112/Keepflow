@@ -19,6 +19,9 @@ function buildServiceDescriptor() {
     presentation_planner_mode: config.presentationAssistant.enabled
       ? 'grounded_ai_configured'
       : 'deterministic_fallback',
+    context_routing_mode: config.contextRouting.enabled && config.contextRouting.apiKey
+      ? 'live_google_maps_configured'
+      : 'unavailable_until_configured',
     description:
       'A lifestyle continuity companion for everyday routines and disruptive ' +
       'moments: Daily Flow supports adult meal and movement routines; First Move ' +
@@ -29,7 +32,10 @@ function buildServiceDescriptor() {
       'Presentation Pack converts grounded Study or Work source material into a ' +
       'verified PowerPoint with speaker notes. Continuity Pack is the flagship ' +
       'orchestration capability: one access-aware request returns an action timeline, ' +
-      'message scripts, delegation cards, calendar reminders, and PDF/DOCX briefs.',
+      'message scripts, delegation cards, calendar reminders, and PDF/DOCX briefs. ' +
+      'Context & Routing is the shared real-world discovery layer: with explicit ' +
+      'location permission, it ranks nearby places and provider routes while keeping ' +
+      'unverified opening, safety, accessibility, allergy, and availability claims explicit.',
     endpoints: {
       health: 'GET /health',
       readiness: 'GET /ready',
@@ -62,6 +68,7 @@ function buildServiceDescriptor() {
     companion_capabilities: [
       'flagship access-aware continuity orchestration with PDF, DOCX, and ICS artifacts',
       'stateless calendar reminder packs with importable alerts',
+      'consent-based live place discovery embedded into relevant Daily Flow, First Move, and Continuity Pack responses',
     ],
     first_move_supported_incidents: [
       'stolen or lost phone',
@@ -111,6 +118,9 @@ healthRouter.get('/health', (_req, res) => {
     presentation_planner_mode: config.presentationAssistant.enabled
       ? 'grounded_ai_configured'
       : 'deterministic_fallback',
+    context_routing_mode: config.contextRouting.enabled && config.contextRouting.apiKey
+      ? 'live_google_maps_configured'
+      : 'unavailable_until_configured',
     payments_enabled: config.payments.enabled,
     service_count: 4,
     paid_capability_count: 8,

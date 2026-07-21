@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContextRoutingOutputSchema } from './context-routing-output.js';
 import {
   ContinuityAccessStateSchema,
   ContinuityResourceSchema,
@@ -100,6 +101,8 @@ export const ContinuityPackOutputSchema = z
       })
       .strict(),
     limitations: z.array(z.string().min(1)).min(3).max(7),
+    context_routing: ContextRoutingOutputSchema.optional(),
+    context_routing_notice: z.string().min(1).optional(),
     meta: z
       .object({
         asp: z.literal('KeepFlow'),

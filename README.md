@@ -18,7 +18,7 @@ Pack is live, and Continuity Pack now creates bounded PDF and DOCX briefs. Gener
 office-document generation, XLSX, career, and video outputs remain roadmap items.
 
 It currently exposes four core paid, stateless services through eight endpoints.
-Reminder Pack and Continuity Pack are cross-service companion capabilities, not
+Reminder Pack, Continuity Pack, and Context & Routing are cross-service companion capabilities, not
 additional core services:
 
 - **Daily Flow - Constraint-Aware Meal & Movement Checklist**
@@ -28,6 +28,46 @@ additional core services:
 - **Reminder Pack - Importable Calendar Alerts** *(companion capability)*
 - **Presentation Pack - Grounded PowerPoint + Speaker Notes** *(shared Study/Work capability)*
 - **Continuity Pack - Access-Aware Actions + PDF/DOCX/ICS** *(flagship orchestration capability)*
+- **Context & Routing - Consented Live Place and Route Discovery** *(shared real-world discovery capability)*
+
+---
+
+## Context & Routing
+
+Context & Routing is an internal shared layer, not a separate endpoint. Daily
+Flow, First Move, and Continuity Pack activate it only when the request includes
+`real_world_context` with explicit one-request location permission and supplied
+coordinates. The active service decides which place categories match the need;
+the caller supplies radius, travel mode, urgency, and relevant constraints.
+
+The response ranks up to eight nearby candidates and returns provider-sourced
+place data, retrieval timestamps, routes where available, transparent ranking
+reasons, and separate confirmed/unverified facts. It never claims that opening
+hours, staffing, availability, accessibility, allergy safety, price, or route
+safety are guaranteed. Immediate requests also state that discovery is not an
+emergency-dispatch service.
+
+Production discovery uses Google Places API (New) and Routes API from the
+server. Set `GOOGLE_MAPS_API_KEY` and keep `CONTEXT_ROUTING_ENABLED=true`.
+Restrict the key to those two APIs and the VPS public IP. When it is missing,
+KeepFlow returns `503 context_routing_unavailable` before x402, so the customer
+is not charged for an unusable lookup. KeepFlow does not intentionally persist
+caller coordinates and never logs request bodies.
+
+```json
+{
+  "description": "My phone and wallet were stolen while travelling alone.",
+  "real_world_context": {
+    "location_permission": true,
+    "origin": { "latitude": 6.5244, "longitude": 3.3792 },
+    "search": {
+      "radius_m": 3000,
+      "travel_mode": "walking",
+      "urgency": "urgent"
+    }
+  }
+}
+```
 
 ---
 

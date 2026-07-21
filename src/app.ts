@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
-import { firstMoveRouter } from './routes/firstmove.js';
-import { dailyFlowRouter } from './routes/daily-flow.js';
+import { createFirstMoveRouter } from './routes/firstmove.js';
+import { createDailyFlowRouter } from './routes/daily-flow.js';
 import { studyFlowRouter } from './routes/study-flow.js';
 import {
   createStudyAssistRouter,
@@ -18,6 +18,7 @@ import {
 import { createOkxPaymentMiddleware } from './payments/okx-sdk.js';
 import {
   findPaidRoute,
+  isUnpaidX402DiscoveryProbe,
   rejectNonCanonicalPaidRouteAliases,
   validatePaidRequestBeforePayment,
 } from './payments/paid-routes.js';
@@ -33,13 +34,19 @@ import {
 import type { PresentationPlanner } from './engine/presentation-plan.js';
 import {
   continuityPackPrepaymentGuard,
-  continuityPackRouter,
+  createContinuityPackRouter,
 } from './routes/continuity-pack.js';
 import {
   createArtifactCapacityLimiter,
   createIdempotencyMiddleware,
   createPaidRouteRateLimiter,
 } from './operational/limits.js';
+import {
+  createGoogleMapsProvider,
+  type ContextRoutingProvider,
+} from './context/google-maps-provider.js';
+import { createContextEnrichmentAvailabilityGuard } from './context/enrichment-guard.js';
+import { createModelClassifier } from './engine/model-classifier.js';
 
 // Resolve bundled assets from the application location rather than the
 // process working directory. PM2/systemd and container entrypoints may launch
@@ -55,10 +62,16 @@ export interface CreateAppOptions {
   studyAssistDependencies?: StudyAssistDependencies;
   /** Test/integration seam for grounded presentation planning. */
   presentationPlanner?: PresentationPlanner | null;
+  /** Test/integration seam for consent-based live place and route discovery. */
+  contextRoutingProvider?: ContextRoutingProvider;
 }
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
+  const contextRoutingProvider = options.contextRoutingProvider ?? createGoogleMapsProvider({
+    apiKey: config.contextRouting.enabled ? config.contextRouting.apiKey : undefined,
+    timeoutMs: config.contextRouting.timeoutMs,
+  });
 
   app.disable('x-powered-by');
   // KeepFlow is reached through exactly one trusted reverse-proxy hop (the
@@ -126,6 +139,34 @@ export function createApp(options: CreateAppOptions = {}) {
   });
   app.use(express.json({ limit: '64kb' }));
 
+  // OKX's A2MCP validator first probes a paid POST endpoint without business
+  // parameters. Let only that empty, unsigned request reach x402 immediately,
+  // so it receives PAYMENT-REQUIRED instead of an input-validation 400. Any
+  // real request remains subject to the prepayment safety and schema guards
+  // below. A paid replay with an empty body is not a probe and is rejected.
+  const okxPayment = config.payments.enabled
+    ? createOkxPaymentMiddleware(config)
+    : null;
+  if (config.payments.enabled) {
+    app.use((req, res, next) => {
+      if (!isUnpaidX402DiscoveryProbe(req)) {
+        next();
+        return;
+      }
+      if (!okxPayment) {
+        log.warn('payments.misconfigured', {});
+        res.status(500).json({ error: 'payment_misconfigured' });
+        return;
+      }
+      okxPayment(req, res, next);
+    });
+  }
+
+  // Existing services opt into real-world enrichment only when the caller
+  // explicitly supplies one-request location permission. Never ask for x402
+  // payment when that optional live dependency is not configured.
+  app.use(createContextEnrichmentAvailabilityGuard(contextRoutingProvider));
+
   // Material is locally parsed, screened, masked and cleared before the
   // generic paid validator. External providers remain behind payment.
   app.post('/v1/study-assist', studyAssistPrepaymentGuard);
@@ -157,7 +198,6 @@ export function createApp(options: CreateAppOptions = {}) {
   // and / stay free. Off by default (pass-through). When enabled but OKX creds
   // are missing, fail closed on the paid route rather than serve it for free.
   if (config.payments.enabled) {
-    const okxPayment = createOkxPaymentMiddleware(config);
     if (okxPayment) {
       app.use(okxPayment);
     } else {
@@ -172,14 +212,17 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   }
 
-  app.use(firstMoveRouter);
-  app.use(dailyFlowRouter);
+  app.use(createFirstMoveRouter({
+    classifier: createModelClassifier(config),
+    contextRoutingProvider,
+  }));
+  app.use(createDailyFlowRouter(contextRoutingProvider));
   app.use(studyFlowRouter);
   app.use(createStudyAssistRouter(options.studyAssistDependencies));
   app.use(workHandoverRouter);
   app.use(reminderPackRouter);
   app.use(createPresentationPackRouter(options.presentationPlanner));
-  app.use(continuityPackRouter);
+  app.use(createContinuityPackRouter(contextRoutingProvider));
 
   // JSON body parse errors and anything uncaught.
   app.use(

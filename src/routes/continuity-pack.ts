@@ -10,6 +10,7 @@ import {
   ContinuityPackInputSchema,
   type ContinuityPackInput,
 } from '../schemas/continuity-pack-input.js';
+import { ContinuityPackOutputSchema } from '../schemas/continuity-pack-output.js';
 import { dangerGate } from '../security/danger-gate.js';
 import { misuseGate } from '../security/misuse-gate.js';
 import {
@@ -17,6 +18,11 @@ import {
   scanStudyAssistSecrets,
   type StudyAssistPersonalDataCategory,
 } from '../security/study-assist-guard.js';
+import type { ContextRoutingProvider } from '../context/google-maps-provider.js';
+import { createGoogleMapsProvider } from '../context/google-maps-provider.js';
+import { config } from '../config.js';
+import { buildContextRouting } from '../engine/context-routing.js';
+import { contextInputForService, continuityCategories } from '../context/service-context.js';
 
 const INPUT_LOCAL = 'continuityPackInput';
 const PERSONAL_DATA_LOCAL = 'continuityPackPersonalDataMasked';
@@ -38,6 +44,12 @@ function installCleanup(req: Request, res: Response): Cleanup {
       });
       input.immediate_deadlines.length = 0;
       input.stakeholders.length = 0;
+      if (input.real_world_context) {
+        input.real_world_context.origin.latitude = 0;
+        input.real_world_context.origin.longitude = 0;
+        input.real_world_context.search.allergies.length = 0;
+        input.real_world_context.search.accessibility_needs.length = 0;
+      }
     }
     delete res.locals[INPUT_LOCAL];
     delete res.locals[PERSONAL_DATA_LOCAL];
@@ -148,9 +160,10 @@ export function continuityPackPrepaymentGuard(
   next();
 }
 
-export const continuityPackRouter = Router({ caseSensitive: true, strict: true });
+export function createContinuityPackRouter(provider: ContextRoutingProvider): Router {
+  const router = Router({ caseSensitive: true, strict: true });
 
-continuityPackRouter.post(
+router.post(
   '/v1/continuity-pack',
   continuityPackPrepaymentGuard,
   async (req: Request, res: Response) => {
@@ -165,7 +178,41 @@ continuityPackRouter.post(
       return;
     }
     try {
-      const output = await buildContinuityPack(input, personalData);
+      let output = await buildContinuityPack(input, personalData);
+      if (input.real_world_context) {
+        const categories = continuityCategories(input);
+        if (!categories.length) {
+          output = {
+            ...output,
+            context_routing_notice: 'No real-world place category was relevant enough to this continuity request to justify a location lookup.',
+          };
+        } else {
+          try {
+            const contextInput = contextInputForService({
+              sourceService: 'continuity_pack',
+              need: `Find practical real-world support for ${input.situation_type.replaceAll('_', ' ')}.`,
+              request: {
+                ...input.real_world_context,
+                search: {
+                  ...input.real_world_context.search,
+                  urgency: input.situation_type === 'travel_disruption' ? 'soon' : 'urgent',
+                },
+              },
+              categories,
+            });
+            output = {
+              ...output,
+              context_routing: await buildContextRouting(contextInput, provider),
+            };
+          } catch {
+            output = {
+              ...output,
+              context_routing_notice: 'Live place enrichment was unavailable; the continuity pack remains usable and no location facts were invented.',
+            };
+          }
+        }
+        output = ContinuityPackOutputSchema.parse(output);
+      }
       const latency = Date.now() - started;
       recordContinuityPackSuccess(latency, Object.keys(output.artifacts).length);
       log.info('continuitypack.ok', {
@@ -195,3 +242,10 @@ continuityPackRouter.post(
     }
   },
 );
+  return router;
+}
+
+export const continuityPackRouter = createContinuityPackRouter(createGoogleMapsProvider({
+  apiKey: config.contextRouting.enabled ? config.contextRouting.apiKey : undefined,
+  timeoutMs: config.contextRouting.timeoutMs,
+}));

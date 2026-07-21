@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContextEnrichmentRequestSchema } from './context-routing-input.js';
 
 const UNSAFE_CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 const SafeText = (minimum: number, maximum: number) => z
@@ -105,6 +106,7 @@ export const ContinuityPackInputSchema = z
       })
       .strict()
       .default({}),
+    real_world_context: ContextEnrichmentRequestSchema.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {

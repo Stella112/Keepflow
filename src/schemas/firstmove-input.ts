@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContextEnrichmentRequestSchema } from './context-routing-input.js';
 
 /**
  * First Move request. Deliberately minimal: a free-text description plus a few
@@ -29,6 +30,9 @@ export const FirstMoveInputSchema = z
       })
       .strict()
       .optional(),
+
+    /** Optional one-request location consent for relevant real-world help. */
+    real_world_context: ContextEnrichmentRequestSchema.optional(),
 
   })
   .strict();

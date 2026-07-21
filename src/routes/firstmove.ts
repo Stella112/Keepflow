@@ -10,6 +10,9 @@ import { repairPlan } from '../engine/repair-plan.js';
 import { evaluatePlan } from '../engine/evaluate-plan.js';
 import { createModelClassifier, type Classifier } from '../engine/model-classifier.js';
 import { log } from '../observability/logger.js';
+import type { ContextRoutingProvider } from '../context/google-maps-provider.js';
+import { buildContextRouting } from '../engine/context-routing.js';
+import { contextInputForService, firstMoveCategories } from '../context/service-context.js';
 
 /**
  * First Move route — produces the recovery plan. Payment (x402) is handled
@@ -19,13 +22,14 @@ import { log } from '../observability/logger.js';
 
 export interface FirstMoveDeps {
   classifier: Classifier | null;
+  contextRoutingProvider?: ContextRoutingProvider;
 }
 
 export function createFirstMoveRouter(deps: FirstMoveDeps): Router {
   // Payment middleware matches canonical paths. Keep the paid handler equally
   // strict so case or trailing-slash aliases can never bypass x402.
   const router = Router({ caseSensitive: true, strict: true });
-  const { classifier } = deps;
+  const { classifier, contextRoutingProvider } = deps;
 
   router.post('/v1/first-move', async (req: Request, res: Response) => {
     const started = Date.now();
@@ -71,6 +75,44 @@ export function createFirstMoveRouter(deps: FirstMoveDeps): Router {
       }
       if (!validation.valid) {
         log.error('firstmove.invalid', { errors: validation.errors });
+        res.status(500).json({ error: 'plan_generation_failed' });
+        return;
+      }
+
+      if (input.real_world_context) {
+        const categories = firstMoveCategories(plan.incident_type);
+        if (!categories.length) {
+          plan = {
+            ...plan,
+            context_routing_notice: 'No real-world place category was relevant enough to this incident to justify a location lookup.',
+          };
+        } else if (contextRoutingProvider) {
+          try {
+            const contextInput = contextInputForService({
+              sourceService: 'first_move',
+              need: `Find practical staffed support for a ${plan.incident_type.replaceAll('_', ' ')} incident.`,
+              request: {
+                ...input.real_world_context,
+                search: { ...input.real_world_context.search, urgency: 'urgent' },
+              },
+              categories,
+            });
+            plan = {
+              ...plan,
+              context_routing: await buildContextRouting(contextInput, contextRoutingProvider),
+            };
+          } catch {
+            plan = {
+              ...plan,
+              context_routing_notice: 'Live place enrichment was unavailable; the ordered recovery plan remains usable and no location facts were invented.',
+            };
+          }
+        }
+      }
+
+      validation = validatePlan(plan);
+      if (!validation.valid) {
+        log.error('firstmove.context_invalid', { errors: validation.errors });
         res.status(500).json({ error: 'plan_generation_failed' });
         return;
       }

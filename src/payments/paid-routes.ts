@@ -1,4 +1,4 @@
-import type { RequestHandler, Response } from 'express';
+import type { Request, RequestHandler, Response } from 'express';
 import type { ZodTypeAny } from 'zod';
 import { DailyFlowInputSchema } from '../schemas/daily-flow-input.js';
 import { FirstMoveInputSchema } from '../schemas/firstmove-input.js';
@@ -141,6 +141,22 @@ export const PAID_ROUTE_KEYS = PAID_ROUTE_SPECS.map(
 
 export function findPaidRoute(method: string, path: string): PaidRouteSpec | undefined {
   return PAID_ROUTE_SPECS.find((route) => route.method === method && route.path === path);
+}
+
+/**
+ * OKX validates an x402 A2MCP listing with a body-less request before it knows
+ * the service's business parameters. That request must reach the payment
+ * middleware and receive the standard 402 challenge. Ordinary malformed
+ * requests still fail before payment, and a request carrying a payment header
+ * is never treated as discovery.
+ */
+export function isUnpaidX402DiscoveryProbe(
+  req: Pick<Request, 'method' | 'path' | 'body' | 'headers'>,
+): boolean {
+  if (!findPaidRoute(req.method, req.path)) return false;
+  if (req.headers['payment-signature'] || req.headers['x-payment']) return false;
+
+  return req.body === undefined;
 }
 
 /**

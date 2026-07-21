@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContextRoutingOutputSchema } from './context-routing-output.js';
 
 /**
  * First Move response schema.
@@ -125,6 +126,8 @@ export const FirstMoveOutputSchema = z
     limitations: z.array(z.string().min(1)),
     /** Areas explicitly out of scope for this service. */
     unsupported_areas: z.array(z.string().min(1)),
+    context_routing: ContextRoutingOutputSchema.optional(),
+    context_routing_notice: z.string().min(1).optional(),
     meta: MetaSchema,
   })
   .strict()

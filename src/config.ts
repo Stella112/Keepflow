@@ -59,6 +59,12 @@ export interface Config {
     crossrefMailto: string | undefined;
     timeoutMs: number;
   };
+  contextRouting: {
+    enabled: boolean;
+    apiKey: string | undefined;
+    timeoutMs: number;
+    provider: 'google_maps';
+  };
   payments: {
     /** x402 pay-per-call via the OKX Payment SDK (@okxweb3/x402-express). */
     enabled: boolean;
@@ -73,6 +79,7 @@ export interface Config {
 
 export function loadConfig(): Config {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim() || undefined;
+  const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim() || undefined;
   const configuredPayTo =
     process.env.PAY_TO_ADDRESS?.trim() ||
     process.env.X402_PAY_TO_ADDRESS?.trim() ||
@@ -107,7 +114,7 @@ export function loadConfig(): Config {
       asp: 'KeepFlow',
       name: 'KeepFlow - Lifestyle Continuity Companion',
       tagline: 'The next safe step for everyday routines and life disruptions.',
-      version: '0.7.1',
+      version: '0.8.0',
     },
     classifier: {
       llmEnabled: Boolean(apiKey),
@@ -133,6 +140,12 @@ export function loadConfig(): Config {
     research: {
       crossrefMailto: process.env.CROSSREF_MAILTO?.trim() || undefined,
       timeoutMs: envInt('CROSSREF_TIMEOUT_MS', 8_000, { min: 100, max: 120_000 }),
+    },
+    contextRouting: {
+      enabled: envBool('CONTEXT_ROUTING_ENABLED', true),
+      apiKey: googleMapsApiKey,
+      timeoutMs: envInt('CONTEXT_ROUTING_TIMEOUT_MS', 8_000, { min: 500, max: 30_000 }),
+      provider: 'google_maps',
     },
     payments: {
       enabled: envBool('PAYMENTS_ENABLED', false),

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContextRoutingOutputSchema } from './context-routing-output.js';
 
 const ChecklistItemSchema = z
   .object({
@@ -66,6 +67,8 @@ export const DailyFlowOutputSchema = z
     assumptions: z.array(z.string().min(1)),
     questions: z.array(z.string().min(1)).max(5),
     limitations: z.array(z.string().min(1)),
+    context_routing: ContextRoutingOutputSchema.optional(),
+    context_routing_notice: z.string().min(1).optional(),
     meta: z
       .object({
         asp: z.literal('KeepFlow'),

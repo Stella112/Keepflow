@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContextEnrichmentRequestSchema } from './context-routing-input.js';
 
 const ShortText = z.string().trim().min(1).max(120);
 
@@ -63,6 +64,7 @@ export const DailyFlowInputSchema = z
       })
       .strict()
       .default({}),
+    real_world_context: ContextEnrichmentRequestSchema.optional(),
   })
   .strict();
 

@@ -12,6 +12,9 @@ app.listen(config.port, () => {
     asp: config.service.asp,
     service: config.service.name,
     classifier: config.classifier.llmEnabled ? 'hybrid' : 'deterministic',
+    context_routing: config.contextRouting.enabled && config.contextRouting.apiKey
+      ? 'configured'
+      : 'unavailable',
     payments_enabled: config.payments.enabled,
   });
   void refreshReadiness(config);
