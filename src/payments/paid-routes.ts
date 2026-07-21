@@ -156,7 +156,13 @@ export function isUnpaidX402DiscoveryProbe(
   if (!findPaidRoute(req.method, req.path)) return false;
   if (req.headers['payment-signature'] || req.headers['x-payment']) return false;
 
-  return req.body === undefined;
+  if (req.body === undefined) return true;
+  return (
+    typeof req.body === 'object' &&
+    req.body !== null &&
+    !Array.isArray(req.body) &&
+    Object.keys(req.body as Record<string, unknown>).length === 0
+  );
 }
 
 /**

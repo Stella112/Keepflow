@@ -109,7 +109,7 @@ describe('paid-route registry', () => {
 
     const emptyJsonRequest = request('POST', '/v1/continuity-pack', {});
     emptyJsonRequest.headers = {};
-    expect(isUnpaidX402DiscoveryProbe(emptyJsonRequest)).toBe(false);
+    expect(isUnpaidX402DiscoveryProbe(emptyJsonRequest)).toBe(true);
 
     const realRequest = request('POST', '/v1/continuity-pack', { description: 'Help me.' });
     realRequest.headers = {};

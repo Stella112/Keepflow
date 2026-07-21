@@ -111,7 +111,7 @@ describe('payment configuration', () => {
       const malformed = await fetch(`${origin}/v1/study-flow`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: '{}',
+        body: JSON.stringify({ unexpected: true }),
       });
       expect(malformed.status).toBe(400);
       expect(await malformed.json()).toMatchObject({ error: 'invalid_request' });
