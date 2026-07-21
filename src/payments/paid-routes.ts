@@ -39,6 +39,23 @@ export type PaidRouteSpec =
   | SchemaValidatedPaidRouteSpec
   | PrevalidatedBodyPaidRouteSpec;
 
+/**
+ * Read-only discovery alias required by OKX's endpoint validator. The
+ * validator probes a registered URL with GET, while the actual KeepFlow
+ * capability remains a POST. Its x402 metadata instructs capable buyers to
+ * perform the paid replay with `replayMethod`.
+ */
+export interface X402DiscoveryRouteSpec {
+  method: 'GET';
+  replayMethod: 'POST';
+  path: string;
+  description: string;
+  operationId: string;
+  inputSchema: ZodTypeAny;
+}
+
+export type X402RouteSpec = PaidRouteSpec | X402DiscoveryRouteSpec;
+
 /** Server-only response-local key used to prove large-body prevalidation ran. */
 export const PAID_ROUTE_PREVALIDATION_LOCAL =
   'keepflowPaidRoutePrevalidatedKey' as const;
@@ -135,12 +152,33 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
   },
 ] as const;
 
+export const X402_DISCOVERY_ROUTE_SPECS: readonly X402DiscoveryRouteSpec[] = [
+  {
+    method: 'GET',
+    replayMethod: 'POST',
+    path: '/v1/continuity-pack',
+    description: 'KeepFlow - Access-Aware Executable Continuity Pack',
+    operationId: 'createContinuityPack',
+    inputSchema: ContinuityPackInputSchema,
+  },
+] as const;
+
+/** Routes protected by x402, including validator-only discovery aliases. */
+export const X402_ROUTE_SPECS: readonly X402RouteSpec[] = [
+  ...PAID_ROUTE_SPECS,
+  ...X402_DISCOVERY_ROUTE_SPECS,
+];
+
 export const PAID_ROUTE_KEYS = PAID_ROUTE_SPECS.map(
   (route) => paidRouteKey(route.method, route.path),
 );
 
 export function findPaidRoute(method: string, path: string): PaidRouteSpec | undefined {
   return PAID_ROUTE_SPECS.find((route) => route.method === method && route.path === path);
+}
+
+export function findX402Route(method: string, path: string): X402RouteSpec | undefined {
+  return X402_ROUTE_SPECS.find((route) => route.method === method && route.path === path);
 }
 
 /**
@@ -153,7 +191,7 @@ export function findPaidRoute(method: string, path: string): PaidRouteSpec | und
 export function isUnpaidX402DiscoveryProbe(
   req: Pick<Request, 'method' | 'path' | 'body' | 'headers'>,
 ): boolean {
-  if (!findPaidRoute(req.method, req.path)) return false;
+  if (!findX402Route(req.method, req.path)) return false;
   if (req.headers['payment-signature'] || req.headers['x-payment']) return false;
 
   if (req.body === undefined) return true;

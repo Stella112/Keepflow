@@ -1,5 +1,9 @@
 import type { RequestHandler } from 'express';
-import { findPaidRoute, PAID_ROUTE_FINGERPRINT_LOCAL } from '../payments/paid-routes.js';
+import {
+  findPaidRoute,
+  findX402Route,
+  PAID_ROUTE_FINGERPRINT_LOCAL,
+} from '../payments/paid-routes.js';
 
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT = 30;
@@ -14,7 +18,7 @@ interface CachedResponse { fingerprint: string; body: string; expiresAt: number 
 export function createPaidRouteRateLimiter(): RequestHandler {
   const clients = new Map<string, ClientWindow>();
   return (req, res, next) => {
-    if (!findPaidRoute(req.method, req.path)) return next();
+    if (!findX402Route(req.method, req.path)) return next();
     const now = Date.now();
     const key = req.ip || 'unknown';
     const current = clients.get(key);

@@ -4,9 +4,9 @@ import { ExactEvmScheme } from '@okxweb3/x402-evm/exact/server';
 import { OKXFacilitatorClient } from '@okxweb3/x402-core';
 import type { Config } from '../config.js';
 import { log } from '../observability/logger.js';
-import { PAID_ROUTE_SPECS } from './paid-routes.js';
+import { X402_ROUTE_SPECS } from './paid-routes.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import type { PaidRouteSpec } from './paid-routes.js';
+import type { X402RouteSpec } from './paid-routes.js';
 
 /**
  * Describe the business request in the x402 challenge itself.
@@ -18,7 +18,7 @@ import type { PaidRouteSpec } from './paid-routes.js';
  * nested POST body such as Continuity Pack's access profile.
  */
 export function createX402RouteExtensions(
-  route: PaidRouteSpec,
+  route: X402RouteSpec,
   publicBaseUrl: string,
 ): Record<string, unknown> {
   const bodySchema = zodToJsonSchema(route.inputSchema, {
@@ -30,7 +30,7 @@ export function createX402RouteExtensions(
     outputSchema: {
       input: {
         type: 'http',
-        method: route.method,
+        method: 'replayMethod' in route ? route.replayMethod : route.method,
         bodyType: 'json',
         body: bodySchema,
       },
@@ -86,7 +86,7 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
   );
 
   const paidRoutes = Object.fromEntries(
-    PAID_ROUTE_SPECS.map((route) => [
+    X402_ROUTE_SPECS.map((route) => [
       `${route.method} ${route.path}`,
       {
         accepts: {
@@ -117,7 +117,7 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
     network: config.payments.network,
     price: config.payments.priceUsd,
     payTo: config.payments.payToAddress,
-    protected_routes: PAID_ROUTE_SPECS.length,
+    protected_routes: X402_ROUTE_SPECS.length,
   });
 
   // x402-express exposes an async Express handler. Express 4 does not

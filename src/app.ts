@@ -18,6 +18,7 @@ import {
 import { createOkxPaymentMiddleware } from './payments/okx-sdk.js';
 import {
   findPaidRoute,
+  findX402Route,
   isUnpaidX402DiscoveryProbe,
   rejectNonCanonicalPaidRouteAliases,
   validatePaidRequestBeforePayment,
@@ -202,7 +203,7 @@ export function createApp(options: CreateAppOptions = {}) {
       app.use(okxPayment);
     } else {
       app.use((req, res, next) => {
-        if (findPaidRoute(req.method, req.path)) {
+        if (findX402Route(req.method, req.path)) {
           log.warn('payments.misconfigured', {});
           res.status(500).json({ error: 'payment_misconfigured' });
           return;

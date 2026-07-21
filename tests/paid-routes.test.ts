@@ -6,6 +6,7 @@ import {
   PAID_ROUTE_PREVALIDATION_LOCAL,
   PAID_ROUTE_SPECS,
   findPaidRoute,
+  findX402Route,
   findPaidRouteAlias,
   isUnpaidX402DiscoveryProbe,
   markPaidRouteBodyPrevalidated,
@@ -119,9 +120,18 @@ describe('paid-route registry', () => {
     paidReplay.headers = { 'payment-signature': 'signed' };
     expect(isUnpaidX402DiscoveryProbe(paidReplay)).toBe(false);
 
-    const wrongMethod = request('GET', '/v1/continuity-pack');
-    wrongMethod.headers = {};
-    expect(isUnpaidX402DiscoveryProbe(wrongMethod)).toBe(false);
+    const marketplaceProbe = request('GET', '/v1/continuity-pack');
+    marketplaceProbe.headers = {};
+    expect(findPaidRoute('GET', '/v1/continuity-pack')).toBeUndefined();
+    expect(findX402Route('GET', '/v1/continuity-pack')).toMatchObject({
+      replayMethod: 'POST',
+      operationId: 'createContinuityPack',
+    });
+    expect(isUnpaidX402DiscoveryProbe(marketplaceProbe)).toBe(true);
+
+    const paidGet = request('GET', '/v1/continuity-pack');
+    paidGet.headers = { 'payment-signature': 'signed' };
+    expect(isUnpaidX402DiscoveryProbe(paidGet)).toBe(false);
   });
 });
 

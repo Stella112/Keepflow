@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { PAID_ROUTE_SPECS } from '../src/payments/paid-routes.js';
+import {
+  PAID_ROUTE_SPECS,
+  X402_DISCOVERY_ROUTE_SPECS,
+} from '../src/payments/paid-routes.js';
 import { createX402RouteExtensions } from '../src/payments/okx-sdk.js';
 
 describe('OKX x402 discovery metadata', () => {
@@ -53,5 +56,16 @@ describe('OKX x402 discovery metadata', () => {
     ]));
     expect(body.properties.location).toBeDefined();
     expect(body.properties.access).toBeDefined();
+  });
+
+  it('advertises POST replay semantics from the OKX GET discovery alias', () => {
+    const route = X402_DISCOVERY_ROUTE_SPECS[0];
+    const extensions = createX402RouteExtensions(route, 'https://keepflow.site') as {
+      outputSchema: { input: { method: string; bodyType: string } };
+    };
+
+    expect(route.method).toBe('GET');
+    expect(extensions.outputSchema.input.method).toBe('POST');
+    expect(extensions.outputSchema.input.bodyType).toBe('json');
   });
 });
