@@ -1,10 +1,8 @@
 import express, { type Router } from 'express';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it } from 'vitest';
-import {
-  createDailyFlowRouter,
-  dailyFlowGetPrepaymentGuard,
-} from '../src/routes/daily-flow.js';
+import { createDailyFlowRouter } from '../src/routes/daily-flow.js';
+import { marketplacePaidGetReplayAdapter } from '../src/payments/marketplace-replay.js';
 import { createStudyRouter } from '../src/routes/study.js';
 import { workCareerRouter } from '../src/routes/work-career.js';
 import type { ContextRoutingProvider } from '../src/context/google-maps-provider.js';
@@ -31,7 +29,7 @@ async function post(router: Router, path: string, body: unknown) {
 async function get(router: Router, path: string, body?: unknown) {
   const app = express();
   app.use(express.json({ limit: '1500kb' }));
-  app.use(dailyFlowGetPrepaymentGuard);
+  app.use(marketplacePaidGetReplayAdapter);
   app.use(router);
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));
@@ -40,7 +38,9 @@ async function get(router: Router, path: string, body?: unknown) {
     const query = body === undefined
       ? ''
       : `?input=${encodeURIComponent(JSON.stringify(body))}`;
-    const response = await fetch(`http://127.0.0.1:${port}${path}${query}`);
+    const response = await fetch(`http://127.0.0.1:${port}${path}${query}`, {
+      headers: { 'X-PAYMENT': 'test-paid-replay' },
+    });
     return { status: response.status, body: await response.json() as Record<string, any> };
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

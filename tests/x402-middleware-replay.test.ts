@@ -2,6 +2,7 @@ import express from 'express';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it, vi } from 'vitest';
 import { paymentMiddlewareFromHTTPServer } from '@okxweb3/x402-express';
+import { marketplacePaidGetReplayAdapter } from '../src/payments/marketplace-replay.js';
 
 describe('OKX x402 paid replay compatibility', () => {
   it('recognizes legacy X-PAYMENT and releases a GET JSON result after settlement', async () => {
@@ -30,13 +31,14 @@ describe('OKX x402 paid replay compatibility', () => {
     };
 
     const app = express();
+    app.use(marketplacePaidGetReplayAdapter);
     app.use(paymentMiddlewareFromHTTPServer(
       fakeServer as never,
       undefined,
       undefined,
       false,
     ));
-    app.get('/v1/daily-flow', (_req, res) => {
+    app.post('/v1/daily-flow', (_req, res) => {
       res.json({ service: 'Daily Flow', delivered: true });
     });
 

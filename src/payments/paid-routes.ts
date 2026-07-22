@@ -171,7 +171,12 @@ export const PAID_ROUTE_SPECS: readonly PaidRouteSpec[] = [
 ] as const;
 
 export const X402_DISCOVERY_ROUTE_SPECS: readonly X402DiscoveryRouteSpec[] =
-  PAID_ROUTE_SPECS.map((route) => ({
+  PAID_ROUTE_SPECS.filter((route) => [
+    '/v1/continuity-pack',
+    '/v1/daily-flow',
+    '/v1/study',
+    '/v1/work-career',
+  ].includes(route.path)).map((route) => ({
     method: 'GET',
     replayMethod: 'POST',
     path: route.path,

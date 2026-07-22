@@ -62,7 +62,7 @@ describe('OKX x402 discovery metadata', () => {
   });
 
   it('advertises POST replay semantics from every OKX GET discovery alias', () => {
-    expect(X402_DISCOVERY_ROUTE_SPECS).toHaveLength(PAID_ROUTE_SPECS.length);
+    expect(X402_DISCOVERY_ROUTE_SPECS).toHaveLength(4);
     for (const route of X402_DISCOVERY_ROUTE_SPECS) {
       const extensions = createX402RouteExtensions(route, 'https://keepflow.site') as {
         outputSchema: { input: { method: string; bodyType: string } };

@@ -4,10 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { createFirstMoveRouter } from './routes/firstmove.js';
-import {
-  createDailyFlowRouter,
-  dailyFlowGetPrepaymentGuard,
-} from './routes/daily-flow.js';
+import { createDailyFlowRouter } from './routes/daily-flow.js';
 import { studyFlowRouter } from './routes/study-flow.js';
 import {
   createStudyAssistRouter,
@@ -53,6 +50,7 @@ import { createContextEnrichmentAvailabilityGuard } from './context/enrichment-g
 import { createModelClassifier } from './engine/model-classifier.js';
 import { createStudyRouter, studyServicePrepaymentGuard } from './routes/study.js';
 import { workCareerPrepaymentGuard, workCareerRouter } from './routes/work-career.js';
+import { marketplacePaidGetReplayAdapter } from './payments/marketplace-replay.js';
 
 // Resolve bundled assets from the application location rather than the
 // process working directory. PM2/systemd and container entrypoints may launch
@@ -168,15 +166,15 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }
 
+  // OKX may replay its GET validation request after payment. Adapt only paid
+  // replays for the four visible marketplace services into their canonical,
+  // fully validated POST pipelines.
+  app.use(marketplacePaidGetReplayAdapter);
+
   // Existing services opt into real-world enrichment only when the caller
   // explicitly supplies one-request location permission. Never ask for x402
   // payment when that optional live dependency is not configured.
   app.use(createContextEnrichmentAvailabilityGuard(contextRoutingProvider));
-
-  // The OKX marketplace may replay its GET validation request after payment.
-  // Normalize it into a real Daily Flow request before the shared payment
-  // middleware; personalized clients should continue using the advertised POST.
-  app.use(dailyFlowGetPrepaymentGuard);
 
   // Material is locally parsed, screened, masked and cleared before the
   // generic paid validator. External providers remain behind payment.

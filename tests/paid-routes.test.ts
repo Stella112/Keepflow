@@ -66,7 +66,12 @@ describe('paid-route registry', () => {
       'POST /v1/continuity-pack',
     ]);
     expect(PAID_ROUTE_SPECS).toHaveLength(10);
-    expect(X402_DISCOVERY_ROUTE_SPECS).toHaveLength(10);
+    expect(X402_DISCOVERY_ROUTE_SPECS.map((route) => route.path)).toEqual([
+      '/v1/daily-flow',
+      '/v1/study',
+      '/v1/work-career',
+      '/v1/continuity-pack',
+    ]);
     expect(loadConfig().payments.priceUsd).toBe('$0.05');
 
     expect(findPaidRoute('POST', '/v1/study-assist')).toMatchObject({
@@ -124,7 +129,7 @@ describe('paid-route registry', () => {
     paidReplay.headers = { 'payment-signature': 'signed' };
     expect(isUnpaidX402DiscoveryProbe(paidReplay)).toBe(false);
 
-    for (const route of PAID_ROUTE_SPECS) {
+    for (const route of X402_DISCOVERY_ROUTE_SPECS) {
       const marketplaceProbe = request('GET', route.path);
       marketplaceProbe.headers = {};
       expect(findPaidRoute('GET', route.path)).toBeUndefined();
@@ -134,6 +139,9 @@ describe('paid-route registry', () => {
       });
       expect(isUnpaidX402DiscoveryProbe(marketplaceProbe)).toBe(true);
     }
+
+    expect(findX402Route('GET', '/v1/study-assist')).toBeUndefined();
+    expect(isUnpaidX402DiscoveryProbe(request('GET', '/v1/study-assist'))).toBe(false);
 
     const paidGet = request('GET', '/v1/continuity-pack');
     paidGet.headers = { 'payment-signature': 'signed' };
