@@ -63,6 +63,20 @@ export function createX402UnpaidResponseBody(route: X402RouteSpec): {
   };
 }
 
+function paymentRequiredErrorCode(header: number | string | string[] | undefined): string | undefined {
+  if (typeof header !== 'string' || !header) return undefined;
+  try {
+    const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf8')) as {
+      error?: unknown;
+    };
+    return typeof decoded.error === 'string' && decoded.error.length <= 120
+      ? decoded.error
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * OKX x402 pay-per-call, via the official @okxweb3/x402-express SDK.
  *
@@ -155,6 +169,22 @@ export function createOkxPaymentMiddleware(config: Config): RequestHandler | nul
   // facilitator outage or malformed payment could otherwise leave the
   // request hanging and produce an unhandled-rejection process warning.
   return ((req, res, next) => {
+    const paymentHeaderName = req.header('payment-signature')
+      ? 'PAYMENT-SIGNATURE'
+      : req.header('x-payment')
+        ? 'X-PAYMENT'
+        : undefined;
+    if (paymentHeaderName) {
+      res.once('finish', () => {
+        if (res.statusCode !== 402) return;
+        log.warn('payments.paid_replay_rejected', {
+          method: req.method,
+          path: req.path,
+          payment_header: paymentHeaderName,
+          reason: paymentRequiredErrorCode(res.getHeader('payment-required')) ?? 'not_declared',
+        });
+      });
+    }
     Promise.resolve()
       .then(() => middleware(req, res, next))
       .catch((error: unknown) => {

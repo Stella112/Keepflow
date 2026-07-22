@@ -1,7 +1,10 @@
 import express, { type Router } from 'express';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it } from 'vitest';
-import { createDailyFlowRouter } from '../src/routes/daily-flow.js';
+import {
+  createDailyFlowRouter,
+  dailyFlowGetPrepaymentGuard,
+} from '../src/routes/daily-flow.js';
 import { createStudyRouter } from '../src/routes/study.js';
 import { workCareerRouter } from '../src/routes/work-career.js';
 import type { ContextRoutingProvider } from '../src/context/google-maps-provider.js';
@@ -25,12 +28,53 @@ async function post(router: Router, path: string, body: unknown) {
   }
 }
 
+async function get(router: Router, path: string, body?: unknown) {
+  const app = express();
+  app.use(express.json({ limit: '1500kb' }));
+  app.use(dailyFlowGetPrepaymentGuard);
+  app.use(router);
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve) => server.once('listening', resolve));
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const query = body === undefined
+      ? ''
+      : `?input=${encodeURIComponent(JSON.stringify(body))}`;
+    const response = await fetch(`http://127.0.0.1:${port}${path}${query}`);
+    return { status: response.status, body: await response.json() as Record<string, any> };
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+}
+
 const unusedProvider: ContextRoutingProvider = {
   configured: false,
   search: async () => { throw new Error('not configured'); },
 };
 
 describe('consolidated KeepFlow services', () => {
+  it('Daily serves a transparent starter plan when an OKX paid GET replay omits input', async () => {
+    const result = await get(createDailyFlowRouter(unusedProvider), '/v1/daily-flow');
+    expect(result.status).toBe(200);
+    expect(result.body.service).toContain('Daily Flow');
+    expect(result.body.meal_structure.breakfast.length).toBeGreaterThan(0);
+    expect(result.body.assumptions[0]).toContain('marketplace replay supplied no personal inputs');
+  });
+
+  it('Daily accepts a personalized JSON body on an OKX GET replay', async () => {
+    const result = await get(createDailyFlowRouter(unusedProvider), '/v1/daily-flow', {
+      goal: 'maintain',
+      profile: { age: 30, height_cm: 170, weight_kg: 70, activity_level: 'lightly_active' },
+      constraints: {
+        food_context_pack: 'china',
+        available_foods: ['rice', 'tofu', 'bok choy', 'egg', 'orange'],
+      },
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.food_context_pack).toBe('china');
+    expect(result.body.assumptions[0]).not.toContain('marketplace replay supplied no personal inputs');
+  });
+
   it('Daily embeds an importable reminder calendar when scheduling is requested', async () => {
     const result = await post(createDailyFlowRouter(unusedProvider), '/v1/daily-flow', {
       goal: 'maintain',

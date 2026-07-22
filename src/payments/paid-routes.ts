@@ -42,10 +42,10 @@ export type PaidRouteSpec =
   | PrevalidatedBodyPaidRouteSpec;
 
 /**
- * Read-only discovery alias required by OKX's endpoint validator. The
- * validator probes a registered URL with GET, while the actual KeepFlow
- * capability remains a POST. Its x402 metadata instructs capable buyers to
- * perform the paid replay with `replayMethod`.
+ * Marketplace compatibility route required by OKX's endpoint validator. The
+ * validator probes a registered URL with GET, while x402 metadata still tells
+ * capable buyers to send personalized business input with POST. Route modules
+ * must also implement a safe GET result for clients that replay the probe.
  */
 export interface X402DiscoveryRouteSpec {
   method: 'GET';
@@ -180,7 +180,7 @@ export const X402_DISCOVERY_ROUTE_SPECS: readonly X402DiscoveryRouteSpec[] =
     inputSchema: route.inputSchema,
   }));
 
-/** Routes protected by x402, including validator-only discovery aliases. */
+/** Routes protected by x402, including marketplace GET compatibility paths. */
 export const X402_ROUTE_SPECS: readonly X402RouteSpec[] = [
   ...PAID_ROUTE_SPECS,
   ...X402_DISCOVERY_ROUTE_SPECS,
