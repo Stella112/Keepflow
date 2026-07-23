@@ -325,7 +325,31 @@ describe('Context & Routing HTTP boundary', () => {
     });
   });
 
-  it('fails the existing service before payment when requested enrichment is not configured', async () => {
+  it('keeps the core Daily plan usable when optional live enrichment is not configured', async () => {
+    const provider: ContextRoutingProvider = {
+      name: 'Google Maps Platform',
+      configured: false,
+      discover: vi.fn(async () => {
+        throw new Error('not_configured');
+      }),
+    };
+    await withApp(createApp({ contextRoutingProvider: provider }), async (origin) => {
+      const response = await fetch(`${origin}/v1/daily-flow`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(dailyRequest),
+      });
+      const body = await response.json() as any;
+      expect(response.status).toBe(200);
+      expect(body.service).toContain('Daily Flow');
+      expect(body.meal_structure.breakfast.length).toBeGreaterThan(0);
+      expect(body.context_routing).toBeUndefined();
+      expect(body.context_routing_notice).toContain('core meal and movement plan remains complete');
+      expect(provider.discover).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('does not require a country selection for the core Daily plan', async () => {
     const provider: ContextRoutingProvider = {
       name: 'Google Maps Platform',
       configured: false,
@@ -335,10 +359,24 @@ describe('Context & Routing HTTP boundary', () => {
       const response = await fetch(`${origin}/v1/daily-flow`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(dailyRequest),
+        body: JSON.stringify({
+          goal: 'maintain',
+          profile: {
+            age: 32,
+            height_cm: 168,
+            weight_kg: 68,
+            activity_level: 'lightly_active',
+          },
+          constraints: {
+            available_foods: ['rice', 'beans', 'spinach', 'egg'],
+          },
+        }),
       });
-      expect(response.status).toBe(503);
-      expect(await response.json()).toMatchObject({ error: 'context_routing_unavailable' });
+      const body = await response.json() as any;
+      expect(response.status).toBe(200);
+      expect(body.food_context_pack).toBe('custom');
+      expect(body.meal_structure.breakfast.length).toBeGreaterThan(0);
+      expect(body.questions).toContain('Which country or cuisine should guide food terminology?');
       expect(provider.discover).not.toHaveBeenCalled();
     });
   });

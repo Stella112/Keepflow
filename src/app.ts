@@ -4,7 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { createFirstMoveRouter } from './routes/firstmove.js';
-import { createDailyFlowRouter } from './routes/daily-flow.js';
+import {
+  createDailyFlowPrepaymentGuard,
+  createDailyFlowRouter,
+} from './routes/daily-flow.js';
 import { studyFlowRouter } from './routes/study-flow.js';
 import {
   createStudyAssistRouter,
@@ -46,7 +49,6 @@ import {
   createGoogleMapsProvider,
   type ContextRoutingProvider,
 } from './context/google-maps-provider.js';
-import { createContextEnrichmentAvailabilityGuard } from './context/enrichment-guard.js';
 import { createModelClassifier } from './engine/model-classifier.js';
 import { createStudyRouter, studyServicePrepaymentGuard } from './routes/study.js';
 import { workCareerPrepaymentGuard, workCareerRouter } from './routes/work-career.js';
@@ -171,10 +173,9 @@ export function createApp(options: CreateAppOptions = {}) {
   // fully validated POST pipelines.
   app.use(marketplacePaidGetReplayAdapter);
 
-  // Existing services opt into real-world enrichment only when the caller
-  // explicitly supplies one-request location permission. Never ask for x402
-  // payment when that optional live dependency is not configured.
-  app.use(createContextEnrichmentAvailabilityGuard(contextRoutingProvider));
+  // Generate Daily's complete core response before settlement. Optional live
+  // location enrichment may add context, but can never block the core plan.
+  app.post('/v1/daily-flow', createDailyFlowPrepaymentGuard(contextRoutingProvider));
 
   // Material is locally parsed, screened, masked and cleared before the
   // generic paid validator. External providers remain behind payment.
