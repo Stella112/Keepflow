@@ -19,7 +19,29 @@ async function paidGet(path: string): Promise<{ status: number; body: Record<str
   }
 }
 
-describe('visible OKX marketplace paid GET replays', () => {
+async function paidEmptyPost(path: string): Promise<{ status: number; body: Record<string, any> }> {
+  const app = createApp();
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve) => server.once('listening', resolve));
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'PAYMENT-SIGNATURE': 'test-paid-replay',
+      },
+      body: '{}',
+    });
+    return { status: response.status, body: await response.json() as Record<string, any> };
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+    });
+  }
+}
+
+describe('visible OKX marketplace paid replays', () => {
   it('delivers First Move & Continuity with artifacts', async () => {
     const result = await paidGet('/v1/continuity-pack');
     expect(result.status).toBe(200);
@@ -47,5 +69,18 @@ describe('visible OKX marketplace paid GET replays', () => {
     expect(result.status).toBe(200);
     expect(result.body.service).toContain('Work');
     expect(result.body.prioritized_items.length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['/v1/continuity-pack', 'Continuity'],
+    ['/v1/daily-flow', 'Daily Flow'],
+    ['/v1/study', 'Study'],
+    ['/v1/work-career', 'Work'],
+  ])('delivers %s when a signed POST replay has an empty body', async (path, service) => {
+    const result = await paidEmptyPost(path);
+    expect(result.status).toBe(200);
+    expect(result.body.service).toContain(service);
+    expect(result.body.assumptions?.[0] ?? result.body.limitations?.[0] ?? '')
+      .not.toContain('invalid_request');
   });
 });

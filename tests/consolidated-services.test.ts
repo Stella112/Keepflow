@@ -2,7 +2,7 @@ import express, { type Router } from 'express';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it } from 'vitest';
 import { createDailyFlowRouter } from '../src/routes/daily-flow.js';
-import { marketplacePaidGetReplayAdapter } from '../src/payments/marketplace-replay.js';
+import { marketplacePaidReplayAdapter } from '../src/payments/marketplace-replay.js';
 import { createStudyRouter } from '../src/routes/study.js';
 import { workCareerRouter } from '../src/routes/work-career.js';
 import type { ContextRoutingProvider } from '../src/context/google-maps-provider.js';
@@ -29,7 +29,7 @@ async function post(router: Router, path: string, body: unknown) {
 async function get(router: Router, path: string, body?: unknown) {
   const app = express();
   app.use(express.json({ limit: '1500kb' }));
-  app.use(marketplacePaidGetReplayAdapter);
+  app.use(marketplacePaidReplayAdapter);
   app.use(router);
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));

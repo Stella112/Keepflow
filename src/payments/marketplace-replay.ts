@@ -125,23 +125,42 @@ function parseJson(value: unknown): unknown {
   }
 }
 
-/** Adapt OKX's paid GET replay to each service's canonical POST pipeline. */
-export function marketplacePaidGetReplayAdapter(
+/**
+ * Adapt OKX marketplace paid replays to each service's canonical POST
+ * pipeline. Some task-runner versions replay the discovery request as GET;
+ * others follow the advertised POST method but omit the business body. Both
+ * forms receive a safe, declared starter input only when a payment credential
+ * is present. The credential is still verified and settled by the official
+ * OKX middleware downstream.
+ */
+export function marketplacePaidReplayAdapter(
   req: Request,
   res: Response,
   next: NextFunction,
 ): void {
+  const hasPaymentCredential = Boolean(
+    req.headers['payment-signature'] || req.headers['x-payment'],
+  );
+  const hasBody = Boolean(
+    req.body &&
+    typeof req.body === 'object' &&
+    !Array.isArray(req.body) &&
+    Object.keys(req.body as Record<string, unknown>).length > 0,
+  );
+  const supportedReplayShape =
+    req.method === 'GET' ||
+    (req.method === 'POST' && !hasBody);
+
   if (
-    req.method !== 'GET' ||
     !MARKETPLACE_PATHS.has(req.path) ||
-    (!req.headers['payment-signature'] && !req.headers['x-payment'])
+    !hasPaymentCredential ||
+    !supportedReplayShape
   ) {
     next();
     return;
   }
 
   const queryInput = req.query.input ?? req.query.body;
-  const hasBody = req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0;
   const fallback = defaultInput(req.path);
   req.body = hasBody
     ? req.body

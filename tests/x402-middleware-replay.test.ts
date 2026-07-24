@@ -2,7 +2,7 @@ import express from 'express';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it, vi } from 'vitest';
 import { paymentMiddlewareFromHTTPServer } from '@okxweb3/x402-express';
-import { marketplacePaidGetReplayAdapter } from '../src/payments/marketplace-replay.js';
+import { marketplacePaidReplayAdapter } from '../src/payments/marketplace-replay.js';
 import {
   createDailyFlowPrepaymentGuard,
   createDailyFlowRouter,
@@ -36,7 +36,7 @@ describe('OKX x402 paid replay compatibility', () => {
     };
 
     const app = express();
-    app.use(marketplacePaidGetReplayAdapter);
+    app.use(marketplacePaidReplayAdapter);
     app.use(paymentMiddlewareFromHTTPServer(
       fakeServer as never,
       undefined,
@@ -59,6 +59,79 @@ describe('OKX x402 paid replay compatibility', () => {
       expect(response.headers.get('payment-response')).toBe('settled-receipt');
       expect(processHTTPRequest).toHaveBeenCalledOnce();
       expect(processSettlement).toHaveBeenCalledOnce();
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => error ? reject(error) : resolve());
+      });
+    }
+  });
+
+  it('settles a signed empty-body POST replay and returns the Daily plan', async () => {
+    const processHTTPRequest = vi.fn(async (context: { paymentHeader?: string }) => {
+      if (context.paymentHeader !== 'signed-proof') {
+        return {
+          type: 'payment-error',
+          response: { status: 402, headers: {}, body: { error: 'payment_required' } },
+        };
+      }
+      return {
+        type: 'payment-verified',
+        paymentPayload: { x402Version: 2 },
+        paymentRequirements: { scheme: 'exact', network: 'eip155:196' },
+        declaredExtensions: {},
+      };
+    });
+    const processSettlement = vi.fn(async () => ({
+      success: true,
+      headers: { 'payment-response': 'settled-receipt' },
+    }));
+    const fakeServer = {
+      requiresPayment: () => true,
+      processHTTPRequest,
+      processSettlement,
+    };
+    const provider: ContextRoutingProvider = {
+      name: 'Google Maps Platform',
+      configured: false,
+      discover: vi.fn(async () => []),
+    };
+
+    const app = express();
+    app.use(express.json());
+    app.use(marketplacePaidReplayAdapter);
+    app.post('/v1/daily-flow', createDailyFlowPrepaymentGuard(provider));
+    app.use(paymentMiddlewareFromHTTPServer(
+      fakeServer as never,
+      undefined,
+      undefined,
+      false,
+    ));
+    app.use(createDailyFlowRouter(provider));
+
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise<void>((resolve) => server.once('listening', resolve));
+    try {
+      const port = (server.address() as AddressInfo).port;
+      const response = await fetch(`http://127.0.0.1:${port}/v1/daily-flow`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'PAYMENT-SIGNATURE': 'signed-proof',
+        },
+        body: '{}',
+      });
+      const body = await response.json() as Record<string, any>;
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('payment-response')).toBe('settled-receipt');
+      expect(body.service).toContain('Daily Flow');
+      expect(body.food_context_pack).toBe('custom');
+      expect(body.meal_structure.breakfast.length).toBeGreaterThan(0);
+      expect(body.movement_plan.length).toBeGreaterThan(0);
+      expect(body.assumptions[0]).toContain('marketplace replay supplied no personal inputs');
+      expect(processHTTPRequest).toHaveBeenCalledOnce();
+      expect(processSettlement).toHaveBeenCalledOnce();
+      expect(provider.discover).not.toHaveBeenCalled();
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => error ? reject(error) : resolve());

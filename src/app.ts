@@ -52,7 +52,7 @@ import {
 import { createModelClassifier } from './engine/model-classifier.js';
 import { createStudyRouter, studyServicePrepaymentGuard } from './routes/study.js';
 import { workCareerPrepaymentGuard, workCareerRouter } from './routes/work-career.js';
-import { marketplacePaidGetReplayAdapter } from './payments/marketplace-replay.js';
+import { marketplacePaidReplayAdapter } from './payments/marketplace-replay.js';
 
 // Resolve bundled assets from the application location rather than the
 // process working directory. PM2/systemd and container entrypoints may launch
@@ -168,10 +168,10 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }
 
-  // OKX may replay its GET validation request after payment. Adapt only paid
-  // replays for the four visible marketplace services into their canonical,
-  // fully validated POST pipelines.
-  app.use(marketplacePaidGetReplayAdapter);
+  // OKX task runners may replay validation as a paid GET or as a paid POST
+  // with an empty body. Adapt only credential-bearing replays for the four
+  // visible services into their canonical, fully validated POST pipelines.
+  app.use(marketplacePaidReplayAdapter);
 
   // Generate Daily's complete core response before settlement. Optional live
   // location enrichment may add context, but can never block the core plan.
