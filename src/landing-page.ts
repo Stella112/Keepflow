@@ -116,12 +116,12 @@ export const landingPageHtml = String.raw`<!doctype html>
         <div class="service-grid">
           <article class="service-card daily-card">
             <div class="service-top"><span class="service-number">01</span><span class="service-glyph">D</span></div>
-            <div><p class="service-kicker">DAILY FLOW</p><h3>Make the everyday feel manageable.</h3><p>Constraint-aware meal, movement, and routine checklists shaped around the time, foods, and options you actually have.</p><div class="chips"><span>Meals</span><span>Movement</span><span>Routines</span></div></div>
+            <div><p class="service-kicker">DAILY FLOW</p><h3>Make the everyday feel manageable.</h3><p>Constraint-aware meal, movement, and routine checklists shaped around the time, foods, and options you actually have.</p><div class="chips"><span>Meals</span><span>Movement</span><span>Routines</span></div><a class="service-card-link" href="#service-daily">See what you get <span aria-hidden="true">→</span></a></div>
           </article>
 
           <article class="service-card first-card">
             <div class="service-top"><span class="service-number">02</span><span class="service-glyph">F</span></div>
-            <div><p class="service-kicker">FIRST MOVE &amp; CONTINUITY</p><h3>Know what to do when things go wrong.</h3><p>Access-aware recovery plans with ordered actions, ready-to-send messages, delegation cards, nearby help when permitted, and PDF/DOCX/ICS files.</p><div class="chips"><span>Prioritized</span><span>Access-aware</span><span>Executable</span></div></div>
+            <div><p class="service-kicker">FIRST MOVE &amp; CONTINUITY</p><h3>Know what to do when things go wrong.</h3><p>Access-aware recovery plans with ordered actions, ready-to-send messages, delegation cards, nearby help when permitted, and PDF/DOCX/ICS files.</p><div class="chips"><span>Prioritized</span><span>Access-aware</span><span>Executable</span></div><a class="service-card-link" href="#service-continuity">See what you get <span aria-hidden="true">→</span></a></div>
           </article>
 
           <article class="service-card study-card">
@@ -129,12 +129,13 @@ export const landingPageHtml = String.raw`<!doctype html>
             <div class="study-copy">
               <p class="service-kicker">KEEPFLOW STUDY</p><h3>Turn academic pressure into a plan you can finish.</h3><p>Prioritized study sessions, grounded explanations from uploaded materials, practice support, and credible research-source discovery.</p>
               <div class="study-features"><span><i>01</i>Execution planning</span><span><i>02</i>Material explanation</span><span><i>03</i>Research discovery</span></div>
+              <a class="service-card-link" href="#service-study">See what you get <span aria-hidden="true">→</span></a>
             </div>
           </article>
 
           <article class="service-card work-card">
             <div class="service-top"><span class="service-number">04</span><span class="service-glyph">W</span></div>
-            <div><p class="service-kicker">KEEPFLOW WORK &amp; CAREER</p><h3>Move your work—and your career—forward.</h3><p>Operational handovers, truthful resumes, cover letters, transparent job-keyword analysis, interview preparation, and executive-ready assets.</p><div class="chips"><span>Handovers</span><span>Career assets</span><span>Documents</span></div></div>
+            <div><p class="service-kicker">KEEPFLOW WORK &amp; CAREER</p><h3>Move your work—and your career—forward.</h3><p>Operational handovers, truthful resumes, cover letters, transparent job-keyword analysis, interview preparation, and executive-ready assets.</p><div class="chips"><span>Handovers</span><span>Career assets</span><span>Documents</span></div><a class="service-card-link" href="#service-work">See what you get <span aria-hidden="true">→</span></a></div>
           </article>
         </div>
 
@@ -153,6 +154,86 @@ export const landingPageHtml = String.raw`<!doctype html>
           <div><p class="service-kicker">CONTEXT &amp; ROUTING</p><h3>Know where to go, not only what to do.</h3><p>With explicit location permission, KeepFlow can rank nearby real-world places and provider routes while clearly labeling live facts, timestamps, and anything it could not verify.</p></div>
           <a href="#developers">Real-world discovery <span aria-hidden="true">→</span></a>
         </aside>
+
+        <div class="service-details" aria-labelledby="service-details-title">
+          <div class="service-details-heading">
+            <p class="eyebrow"><span></span>What each service delivers</p>
+            <h2 id="service-details-title">Choose the part of life<br>that needs to move.</h2>
+            <p>Every service asks only for the context it needs, returns a clear next-step workflow, and includes reminders whenever the result contains future actions.</p>
+          </div>
+
+          <article class="service-detail detail-continuity" id="service-continuity">
+            <div class="service-detail-intro">
+              <span class="service-detail-number">01 / URGENT SUPPORT</span>
+              <div class="service-detail-icon" aria-hidden="true">F</div>
+              <p class="service-kicker">FIRST MOVE &amp; CONTINUITY</p>
+              <h3>Regain control when life suddenly breaks.</h3>
+              <p>For a lost phone or wallet, compromised access, travel disruption, or another urgent event where the first safe actions matter most.</p>
+            </div>
+            <div class="service-detail-body">
+              <div class="detail-columns">
+                <div class="detail-block"><span>You provide</span><p>What happened, what you can still access, your immediate deadlines, and any trusted help available. Location is optional.</p></div>
+                <div class="detail-block"><span>KeepFlow returns</span><p>A plan for the next 15 minutes, today, and the next seven days, adapted to the devices, internet, money, ID, and support you actually have.</p></div>
+              </div>
+              <div class="detail-deliverables"><span>Ordered recovery actions</span><span>Ready-to-send messages</span><span>Delegation cards</span><span>PDF / DOCX brief</span><span>ICS reminders</span><span>Nearby help when permitted</span></div>
+              <p class="detail-note"><strong>Access-aware by design:</strong> KeepFlow will not tell you to use a device or account you have already said is unavailable.</p>
+            </div>
+          </article>
+
+          <article class="service-detail detail-daily" id="service-daily">
+            <div class="service-detail-intro">
+              <span class="service-detail-number">02 / EVERYDAY RHYTHM</span>
+              <div class="service-detail-icon" aria-hidden="true">D</div>
+              <p class="service-kicker">DAILY FLOW</p>
+              <h3>Build a realistic day around your actual life.</h3>
+              <p>For people who want practical support with meals, movement, and routines without pretending every day has unlimited time, energy, or options.</p>
+            </div>
+            <div class="service-detail-body">
+              <div class="detail-columns">
+                <div class="detail-block"><span>You provide</span><p>Your goal, schedule, available foods, dietary or allergy constraints, movement access, and any limitations. Country and cuisine are optional.</p></div>
+                <div class="detail-block"><span>KeepFlow returns</span><p>A usable meal structure, movement checklist, routine sequence, assumptions, and safety flags shaped around the constraints you gave.</p></div>
+              </div>
+              <div class="detail-deliverables"><span>Meal structure</span><span>Movement checklist</span><span>Routine steps</span><span>Shopping guidance</span><span>Calendar reminders</span><span>Optional local discovery</span></div>
+              <p class="detail-note"><strong>Practical, not prescriptive:</strong> Daily Flow provides general wellness planning and clearly separates it from medical advice.</p>
+            </div>
+          </article>
+
+          <article class="service-detail detail-study" id="service-study">
+            <div class="service-detail-intro">
+              <span class="service-detail-number">03 / LEARNING &amp; RESEARCH</span>
+              <div class="service-detail-icon" aria-hidden="true">S</div>
+              <p class="service-kicker">KEEPFLOW STUDY</p>
+              <h3>Understand the material, then finish the work.</h3>
+              <p>For students and independent learners who need a clear study plan, a detailed explanation of source material, or credible places to begin research.</p>
+            </div>
+            <div class="service-detail-body">
+              <div class="detail-columns">
+                <div class="detail-block"><span>You provide</span><p>Your academic goal, deadline, available study windows, tasks, research question, or uploaded source material that needs explanation.</p></div>
+                <div class="detail-block"><span>KeepFlow returns</span><p>Prioritized study sessions, grounded explanations tied to the material, practice support, and research-source recommendations with uncertainty made clear.</p></div>
+              </div>
+              <div class="detail-deliverables"><span>Study schedule</span><span>Material explanation</span><span>Practice questions</span><span>Credible source discovery</span><span>Research brief</span><span>Deadline reminders</span></div>
+              <p class="detail-note"><strong>Built for real learning:</strong> KeepFlow supports understanding and research while preserving academic integrity.</p>
+            </div>
+          </article>
+
+          <article class="service-detail detail-work" id="service-work">
+            <div class="service-detail-intro">
+              <span class="service-detail-number">04 / WORK &amp; CAREER</span>
+              <div class="service-detail-icon" aria-hidden="true">W</div>
+              <p class="service-kicker">KEEPFLOW WORK &amp; CAREER</p>
+              <h3>Turn professional context into finished assets.</h3>
+              <p>For career moves, team transitions, and demanding work that needs to become a polished document, handover, action register, or presentation.</p>
+            </div>
+            <div class="service-detail-body">
+              <div class="detail-columns">
+                <div class="detail-block"><span>You provide</span><p>A role or job description, truthful experience, or the tasks, owners, deadlines, dependencies, audience, and source material behind active work.</p></div>
+                <div class="detail-block"><span>KeepFlow returns</span><p>An ATS-aware career pack or an executive-ready handover with clear ownership, blockers, next actions, and the professional files needed to use it.</p></div>
+              </div>
+              <div class="detail-deliverables"><span>Resume &amp; cover letter</span><span>Interview preparation</span><span>Handover &amp; SOP</span><span>Action register</span><span>PDF / DOCX / spreadsheet</span><span>Presentation deck</span></div>
+              <p class="detail-note"><strong>Truth stays intact:</strong> KeepFlow improves positioning and presentation without inventing credentials, achievements, or facts.</p>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="section process-section" id="how-it-works">
