@@ -88,9 +88,10 @@ afterEach(() => {
 
 describe('Study tutor model contract', () => {
   it('keeps two tutor attempts within the paid client response window', () => {
-    expect(studyTutorAttemptTimeoutMs(25_000)).toBe(10_000);
-    expect(studyTutorAttemptTimeoutMs(6_000)).toBe(3_000);
-    expect(studyTutorAttemptTimeoutMs(150)).toBe(100);
+    expect(studyTutorAttemptTimeoutMs(25_000, 1)).toBe(18_000);
+    expect(studyTutorAttemptTimeoutMs(25_000, 2)).toBe(6_000);
+    expect(studyTutorAttemptTimeoutMs(5_000, 1)).toBe(5_000);
+    expect(studyTutorAttemptTimeoutMs(150, 2)).toBe(150);
   });
 
   it('accepts a bounded structured draft whose evidence exists in the catalog', () => {
