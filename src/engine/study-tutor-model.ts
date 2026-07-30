@@ -221,6 +221,13 @@ function maxTokensFor(depth: StudyTutorRequest['explanationDepth']): number {
   return 1_700;
 }
 
+export function studyTutorAttemptTimeoutMs(configuredTimeoutMs: number): number {
+  // Keep two explicit attempts inside the OKX client's request window. Ten
+  // seconds per attempt leaves room for payment verification, settlement, and
+  // response delivery while still respecting a smaller operator setting.
+  return Math.min(10_000, Math.max(100, Math.floor(configuredTimeoutMs / 2)));
+}
+
 function hasForbiddenCitationText(value: unknown): boolean {
   const serialized = JSON.stringify(value);
   return /https?:\/\/|\bdoi\s*:|\b10\.\d{4,9}\//i.test(serialized);
@@ -278,6 +285,9 @@ export function createStudyTutor(config: Config): StudyTutor | null {
         output_language: request.outputLanguage,
         explanation_depth: request.explanationDepth,
       };
+      const attemptTimeoutMs = studyTutorAttemptTimeoutMs(
+        config.studyAssistant.timeoutMs,
+      );
 
       for (let attempt = 1; attempt <= 2; attempt += 1) {
         let failureReason = 'provider_request_failed';
@@ -299,7 +309,7 @@ export function createStudyTutor(config: Config): StudyTutor | null {
                 },
               ],
             },
-            { timeout: config.studyAssistant.timeoutMs },
+            { timeout: attemptTimeoutMs },
           );
           const toolUse = response.content.find((block) => block.type === 'tool_use');
           if (!toolUse || toolUse.type !== 'tool_use') {

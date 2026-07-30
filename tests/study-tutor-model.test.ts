@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config, type Config } from '../src/config.js';
 import {
   createStudyTutor,
+  studyTutorAttemptTimeoutMs,
   StudyTutorDraftSchema,
   validateStudyTutorDraft,
   type StudyTutorDraft,
@@ -86,6 +87,12 @@ afterEach(() => {
 });
 
 describe('Study tutor model contract', () => {
+  it('keeps two tutor attempts within the paid client response window', () => {
+    expect(studyTutorAttemptTimeoutMs(25_000)).toBe(10_000);
+    expect(studyTutorAttemptTimeoutMs(6_000)).toBe(3_000);
+    expect(studyTutorAttemptTimeoutMs(150)).toBe(100);
+  });
+
   it('accepts a bounded structured draft whose evidence exists in the catalog', () => {
     const parsed = StudyTutorDraftSchema.safeParse(validDraft());
 
