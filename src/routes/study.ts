@@ -8,10 +8,55 @@ import { markPaidRouteBodyPrevalidated } from '../payments/paid-routes.js';
 import { StudyServiceInputSchema } from '../schemas/study-service-input.js';
 import type { StudyFlowInput } from '../schemas/study-flow-input.js';
 import { containsSecretShape } from '../security/redact-secrets.js';
-import { createStudyAssistHandler, studyAssistPrepaymentGuard } from './study-assist.js';
+import {
+  captureStudyAssistReplaySnapshot,
+  createStudyAssistHandler,
+  restoreStudyAssistReplaySnapshot,
+  studyAssistPrepaymentGuard,
+  type StudyAssistReplaySnapshot,
+} from './study-assist.js';
 
 const MODE_LOCAL = 'keepflowStudyServiceMode';
 const PLAN_LOCAL = 'keepflowStudyServicePlanInput';
+
+export type StudyServiceReplaySnapshot =
+  | { mode: 'plan'; request: StudyFlowInput }
+  | { mode: 'assist'; preflight: StudyAssistReplaySnapshot };
+
+export function captureStudyServiceReplaySnapshot(
+  res: Response,
+): StudyServiceReplaySnapshot | undefined {
+  const mode = res.locals[MODE_LOCAL] as 'plan' | 'assist' | undefined;
+  if (mode === 'plan') {
+    const request = res.locals[PLAN_LOCAL] as StudyFlowInput | undefined;
+    return request ? { mode, request: structuredClone(request) } : undefined;
+  }
+  if (mode === 'assist') {
+    const preflight = captureStudyAssistReplaySnapshot(res);
+    return preflight ? { mode, preflight } : undefined;
+  }
+  return undefined;
+}
+
+export function restoreStudyServiceReplaySnapshot(
+  req: Request,
+  res: Response,
+  snapshot: StudyServiceReplaySnapshot,
+): boolean {
+  req.method = 'POST';
+  req.body = {};
+  res.locals[MODE_LOCAL] = snapshot.mode;
+  if (snapshot.mode === 'assist') {
+    return restoreStudyAssistReplaySnapshot(req, res, snapshot.preflight);
+  }
+
+  const request = structuredClone(snapshot.request);
+  res.locals[PLAN_LOCAL] = request;
+  return markPaidRouteBodyPrevalidated(res, 'POST', '/v1/study', {
+    mode: 'plan',
+    request,
+  });
+}
 
 export async function studyServicePrepaymentGuard(
   req: Request,

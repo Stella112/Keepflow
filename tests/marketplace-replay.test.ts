@@ -56,12 +56,10 @@ describe('visible OKX marketplace paid replays', () => {
     expect(result.body.movement_plan.length).toBeGreaterThan(0);
   });
 
-  it('delivers Study execution and reminders', async () => {
+  it('rejects a paid Study GET replay when its saved request is missing', async () => {
     const result = await paidGet('/v1/study');
-    expect(result.status).toBe(200);
-    expect(result.body.service).toContain('Study');
-    expect(result.body.sessions.length).toBeGreaterThan(0);
-    expect(result.body.reminder_pack.event_count).toBeGreaterThan(0);
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe('missing_study_replay_input');
   });
 
   it('delivers Work handover output', async () => {
@@ -74,7 +72,6 @@ describe('visible OKX marketplace paid replays', () => {
   it.each([
     ['/v1/continuity-pack', 'Continuity'],
     ['/v1/daily-flow', 'Daily Flow'],
-    ['/v1/study', 'Study'],
     ['/v1/work-career', 'Work'],
   ])('delivers %s when a signed POST replay has an empty body', async (path, service) => {
     const result = await paidEmptyPost(path);
@@ -82,5 +79,11 @@ describe('visible OKX marketplace paid replays', () => {
     expect(result.body.service).toContain(service);
     expect(result.body.assumptions?.[0] ?? result.body.limitations?.[0] ?? '')
       .not.toContain('invalid_request');
+  });
+
+  it('rejects a signed empty Study POST instead of substituting a generic plan', async () => {
+    const result = await paidEmptyPost('/v1/study');
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe('missing_study_replay_input');
   });
 });

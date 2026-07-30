@@ -53,6 +53,10 @@ import { createModelClassifier } from './engine/model-classifier.js';
 import { createStudyRouter, studyServicePrepaymentGuard } from './routes/study.js';
 import { workCareerPrepaymentGuard, workCareerRouter } from './routes/work-career.js';
 import { marketplacePaidReplayAdapter } from './payments/marketplace-replay.js';
+import {
+  captureStudyReplayForChallenge,
+  recoverStudyPaidReplay,
+} from './payments/study-replay.js';
 
 // Resolve bundled assets from the application location rather than the
 // process working directory. PM2/systemd and container entrypoints may launch
@@ -171,6 +175,7 @@ export function createApp(options: CreateAppOptions = {}) {
   // OKX task runners may replay validation as a paid GET or as a paid POST
   // with an empty body. Adapt only credential-bearing replays for the four
   // visible services into their canonical, fully validated POST pipelines.
+  app.use(recoverStudyPaidReplay);
   app.use(marketplacePaidReplayAdapter);
 
   // Generate Daily's complete core response before settlement. Optional live
@@ -205,6 +210,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(validatePaidRequestBeforePayment);
   app.use(createIdempotencyMiddleware());
   app.use(createArtifactCapacityLimiter());
+  app.use(captureStudyReplayForChallenge);
 
   // Payments (x402 via the OKX SDK). Applied only to the paid route; /health
   // and / stay free. Off by default (pass-through). When enabled but OKX creds

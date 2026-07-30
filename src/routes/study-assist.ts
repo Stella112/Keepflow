@@ -28,6 +28,7 @@ const PREFLIGHT_LOCAL = 'studyAssistPreflight';
 const CLEANUP_LOCAL = 'studyAssistCleanup';
 
 type StudyAssistCleanup = () => void;
+export type StudyAssistReplaySnapshot = StudyAssistPreflightData;
 
 function invalidRequest(res: Response, issues: { path: (PropertyKey | number)[]; message: string }[]): void {
   res.status(400).json({
@@ -64,6 +65,29 @@ function installCleanup(req: Request, res: Response): StudyAssistCleanup {
   res.once('finish', cleanup);
   res.once('close', cleanup);
   return cleanup;
+}
+
+export function captureStudyAssistReplaySnapshot(
+  res: Response,
+): StudyAssistReplaySnapshot | undefined {
+  const preflight = res.locals[PREFLIGHT_LOCAL] as StudyAssistPreflightData | undefined;
+  return preflight ? structuredClone(preflight) : undefined;
+}
+
+export function restoreStudyAssistReplaySnapshot(
+  req: Request,
+  res: Response,
+  snapshot: StudyAssistReplaySnapshot,
+): boolean {
+  const preflight = structuredClone(snapshot);
+  req.body = {};
+  res.locals[PREFLIGHT_LOCAL] = preflight;
+  installCleanup(req, res);
+  if (!markPaidRouteBodyPrevalidated(res, 'POST', '/v1/study', preflight)) {
+    cleanupStudyAssist(req, res);
+    return false;
+  }
+  return true;
 }
 
 function maskField(

@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { STUDY_REPLAY_RECOVERED_LOCAL } from './study-replay.js';
 
 export const MARKETPLACE_DEFAULT_INPUT_LOCAL = 'keepflowMarketplaceDefaultInput';
 
@@ -138,6 +139,11 @@ export function marketplacePaidReplayAdapter(
   res: Response,
   next: NextFunction,
 ): void {
+  if (res.locals[STUDY_REPLAY_RECOVERED_LOCAL] === true) {
+    next();
+    return;
+  }
+
   const hasPaymentCredential = Boolean(
     req.headers['payment-signature'] || req.headers['x-payment'],
   );
@@ -161,6 +167,13 @@ export function marketplacePaidReplayAdapter(
   }
 
   const queryInput = req.query.input ?? req.query.body;
+  if (req.path === '/v1/study' && queryInput === undefined) {
+    res.status(400).json({
+      error: 'missing_study_replay_input',
+      message: 'The paid Study replay did not include its saved request. Start a fresh request before paying again.',
+    });
+    return;
+  }
   const fallback = defaultInput(req.path);
   req.body = hasBody
     ? req.body
