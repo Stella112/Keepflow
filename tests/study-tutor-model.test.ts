@@ -102,6 +102,29 @@ describe('Study tutor model contract', () => {
     expect(validateStudyTutorDraft(parsed.data, chunks)).toEqual({ valid: true, errors: [] });
   });
 
+  it('fills omitted optional sections and strips harmless unknown fields', () => {
+    const {
+      key_concepts: _keyConcepts,
+      glossary: _glossary,
+      misconceptions: _misconceptions,
+      practice_questions: _practiceQuestions,
+      unresolved_questions: _unresolvedQuestions,
+      ...requiredDraft
+    } = validDraft();
+
+    const parsed = StudyTutorDraftSchema.parse({
+      ...requiredDraft,
+      extra_note: 'This field is not part of the public response.',
+    });
+
+    expect(parsed.key_concepts).toEqual([]);
+    expect(parsed.glossary).toEqual([]);
+    expect(parsed.misconceptions).toEqual([]);
+    expect(parsed.practice_questions).toEqual([]);
+    expect(parsed.unresolved_questions).toEqual([]);
+    expect(parsed).not.toHaveProperty('extra_note');
+  });
+
   it.each([
     ['summary', (draft: StudyTutorDraft) => { draft.summary_evidence_ids = ['M1:P999:C001']; }],
     ['section', (draft: StudyTutorDraft) => { draft.sections[0]!.evidence_ids = ['M1:P001:C999']; }],

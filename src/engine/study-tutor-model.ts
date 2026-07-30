@@ -9,7 +9,7 @@ const EvidenceIds = z.array(z.string().trim().regex(/^M1:P\d{3}:C\d{3}$/)).min(1
 
 export const StudyTutorDraftSchema = z
   .object({
-    summary: z.string().trim().min(20).max(1_500),
+    summary: z.string().trim().min(1).max(1_500),
     summary_evidence_ids: EvidenceIds,
     sections: z
       .array(
@@ -20,7 +20,7 @@ export const StudyTutorDraftSchema = z
             evidence_ids: EvidenceIds,
             is_analogy: z.boolean(),
           })
-          .strict(),
+          .strip(),
       )
       .min(1)
       .max(8),
@@ -32,9 +32,10 @@ export const StudyTutorDraftSchema = z
             explanation: z.string().trim().min(1).max(600),
             evidence_ids: EvidenceIds,
           })
-          .strict(),
+          .strip(),
       )
-      .max(12),
+      .max(12)
+      .default([]),
     glossary: z
       .array(
         z
@@ -43,9 +44,10 @@ export const StudyTutorDraftSchema = z
             meaning: z.string().trim().min(1).max(400),
             evidence_ids: EvidenceIds,
           })
-          .strict(),
+          .strip(),
       )
-      .max(12),
+      .max(12)
+      .default([]),
     misconceptions: z
       .array(
         z
@@ -54,9 +56,10 @@ export const StudyTutorDraftSchema = z
             correction: z.string().trim().min(1).max(700),
             evidence_ids: EvidenceIds,
           })
-          .strict(),
+          .strip(),
       )
-      .max(6),
+      .max(6)
+      .default([]),
     practice_questions: z
       .array(
         z
@@ -65,12 +68,13 @@ export const StudyTutorDraftSchema = z
             self_check: z.string().trim().min(1).max(600),
             evidence_ids: EvidenceIds,
           })
-          .strict(),
+          .strip(),
       )
-      .max(8),
-    unresolved_questions: z.array(z.string().trim().min(1).max(400)).max(6),
+      .max(8)
+      .default([]),
+    unresolved_questions: z.array(z.string().trim().min(1).max(400)).max(6).default([]),
   })
-  .strict();
+  .strip();
 
 export type StudyTutorDraft = z.infer<typeof StudyTutorDraftSchema>;
 
@@ -109,7 +113,7 @@ const STUDY_ASSIST_TOOL = {
         type: 'array',
         minItems: 1,
         maxItems: 4,
-        items: { type: 'string' },
+        items: { type: 'string', pattern: '^M1:P\\d{3}:C\\d{3}$' },
       },
       sections: {
         type: 'array',
@@ -120,7 +124,12 @@ const STUDY_ASSIST_TOOL = {
           properties: {
             heading: { type: 'string' },
             explanation: { type: 'string' },
-            evidence_ids: { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string' } },
+            evidence_ids: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 4,
+              items: { type: 'string', pattern: '^M1:P\\d{3}:C\\d{3}$' },
+            },
             is_analogy: { type: 'boolean' },
           },
           required: ['heading', 'explanation', 'evidence_ids', 'is_analogy'],
@@ -135,7 +144,12 @@ const STUDY_ASSIST_TOOL = {
           properties: {
             term: { type: 'string' },
             explanation: { type: 'string' },
-            evidence_ids: { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string' } },
+            evidence_ids: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 4,
+              items: { type: 'string', pattern: '^M1:P\\d{3}:C\\d{3}$' },
+            },
           },
           required: ['term', 'explanation', 'evidence_ids'],
           additionalProperties: false,
@@ -149,7 +163,12 @@ const STUDY_ASSIST_TOOL = {
           properties: {
             term: { type: 'string' },
             meaning: { type: 'string' },
-            evidence_ids: { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string' } },
+            evidence_ids: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 4,
+              items: { type: 'string', pattern: '^M1:P\\d{3}:C\\d{3}$' },
+            },
           },
           required: ['term', 'meaning', 'evidence_ids'],
           additionalProperties: false,
@@ -163,7 +182,12 @@ const STUDY_ASSIST_TOOL = {
           properties: {
             misconception: { type: 'string' },
             correction: { type: 'string' },
-            evidence_ids: { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string' } },
+            evidence_ids: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 4,
+              items: { type: 'string', pattern: '^M1:P\\d{3}:C\\d{3}$' },
+            },
           },
           required: ['misconception', 'correction', 'evidence_ids'],
           additionalProperties: false,
@@ -177,7 +201,12 @@ const STUDY_ASSIST_TOOL = {
           properties: {
             question: { type: 'string' },
             self_check: { type: 'string' },
-            evidence_ids: { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string' } },
+            evidence_ids: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 4,
+              items: { type: 'string', pattern: '^M1:P\\d{3}:C\\d{3}$' },
+            },
           },
           required: ['question', 'self_check', 'evidence_ids'],
           additionalProperties: false,
@@ -189,11 +218,6 @@ const STUDY_ASSIST_TOOL = {
       'summary',
       'summary_evidence_ids',
       'sections',
-      'key_concepts',
-      'glossary',
-      'misconceptions',
-      'practice_questions',
-      'unresolved_questions',
     ],
     additionalProperties: false,
   },
@@ -291,6 +315,7 @@ export function createStudyTutor(config: Config): StudyTutor | null {
       for (const attempt of [1, 2] as const) {
         let failureReason = 'provider_request_failed';
         let failureStatus: number | undefined;
+        let validationIssues: string[] | undefined;
         try {
           const response = await client.messages.create(
             {
@@ -319,6 +344,9 @@ export function createStudyTutor(config: Config): StudyTutor | null {
             const parsed = StudyTutorDraftSchema.safeParse(toolUse.input);
             if (!parsed.success) {
               failureReason = 'invalid_tool_response';
+              validationIssues = parsed.error.issues
+                .slice(0, 8)
+                .map((issue) => `${issue.path.join('.') || '<root>'}:${issue.code}`);
             } else {
               const validation = validateStudyTutorDraft(parsed.data, request.chunks);
               if (validation.valid) return parsed.data;
@@ -351,6 +379,7 @@ export function createStudyTutor(config: Config): StudyTutor | null {
           attempt,
           reason: failureReason,
           http_status: failureStatus,
+          validation_issues: validationIssues,
           retrying,
         });
       }
