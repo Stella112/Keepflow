@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config, type Config } from '../src/config.js';
 import {
   createStudyTutor,
@@ -79,6 +79,11 @@ function validDraft(): StudyTutorDraft {
 function cloneDraft(): StudyTutorDraft {
   return structuredClone(validDraft());
 }
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('Study tutor model contract', () => {
   it('accepts a bounded structured draft whose evidence exists in the catalog', () => {
@@ -175,5 +180,93 @@ describe('Study tutor model contract', () => {
 
     expect(createStudyTutor(featureDisabled)).toBeNull();
     expect(createStudyTutor(keyMissing)).toBeNull();
+  });
+
+  it('retries one provider failure and returns the second grounded response', async () => {
+    const responseBody = {
+      id: 'msg_test',
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-haiku-4-5',
+      content: [{
+        type: 'tool_use',
+        id: 'tool_test',
+        name: 'record_grounded_explanation',
+        input: validDraft(),
+      }],
+      stop_reason: 'tool_use',
+      stop_sequence: null,
+      usage: { input_tokens: 10, output_tokens: 10 },
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'temporary' } }),
+        { status: 500, headers: { 'content-type': 'application/json' } },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify(responseBody),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const tutor = createStudyTutor({
+      ...config,
+      studyAssistant: {
+        ...config.studyAssistant,
+        enabled: true,
+        apiKey: 'test-key',
+        model: 'claude-haiku-4-5',
+      },
+    });
+
+    const result = await tutor!.explain({
+      operation: 'practice_questions',
+      subject: 'Biology',
+      topic: 'Photosynthesis',
+      learnerLevel: 'undergraduate',
+      question: 'Create practice questions.',
+      outputLanguage: 'English',
+      explanationDepth: 'standard',
+      chunks,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result).toEqual(validDraft());
+  });
+
+  it('logs only safe failure fields when both provider attempts fail', async () => {
+    const secret = 'private-material-do-not-log';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ type: 'error', error: { type: 'api_error', message: secret } }),
+      { status: 500, headers: { 'content-type': 'application/json' } },
+    )));
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const tutor = createStudyTutor({
+      ...config,
+      studyAssistant: {
+        ...config.studyAssistant,
+        enabled: true,
+        apiKey: 'test-key',
+        model: 'claude-haiku-4-5',
+      },
+    });
+
+    const result = await tutor!.explain({
+      operation: 'practice_questions',
+      subject: 'Geology',
+      topic: 'Plate tectonics',
+      learnerLevel: 'undergraduate',
+      question: 'Create practice questions.',
+      outputLanguage: 'English',
+      explanationDepth: 'standard',
+      chunks,
+    });
+
+    expect(result).toBeNull();
+    expect(logSpy).toHaveBeenCalledOnce();
+    expect(errorSpy).toHaveBeenCalledOnce();
+    expect(`${JSON.stringify(logSpy.mock.calls)}${JSON.stringify(errorSpy.mock.calls)}`)
+      .not.toContain(secret);
   });
 });

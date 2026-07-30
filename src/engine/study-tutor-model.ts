@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { log } from '../observability/logger.js';
 import { z } from 'zod';
 import type { Config } from '../config.js';
 import { containsSecretShape } from '../security/redact-secrets.js';
@@ -254,7 +255,13 @@ export function validateStudyTutorDraft(
 export function createStudyTutor(config: Config): StudyTutor | null {
   if (!config.studyAssistant.enabled || !config.studyAssistant.apiKey) return null;
 
-  const client = new Anthropic({ apiKey: config.studyAssistant.apiKey });
+  // Keep retry behavior explicit and bounded here. The SDK otherwise performs
+  // its own retries, which makes paid-route latency and failure reporting less
+  // predictable.
+  const client = new Anthropic({
+    apiKey: config.studyAssistant.apiKey,
+    maxRetries: 0,
+  });
   return {
     async explain(request) {
       const catalog = request.chunks
@@ -272,34 +279,71 @@ export function createStudyTutor(config: Config): StudyTutor | null {
         explanation_depth: request.explanationDepth,
       };
 
-      try {
-        const response = await client.messages.create(
-          {
-            model: config.studyAssistant.model,
-            max_tokens: maxTokensFor(request.explanationDepth),
-            system: SYSTEM_PROMPT,
-            tools: [STUDY_ASSIST_TOOL],
-            tool_choice: { type: 'tool', name: 'record_grounded_explanation' },
-            messages: [
-              {
-                role: 'user',
-                content:
-                  `Trusted request:\n${JSON.stringify(trustedRequest)}\n\n` +
-                  `<UNTRUSTED_STUDY_MATERIAL>\n${catalog}\n</UNTRUSTED_STUDY_MATERIAL>`,
-              },
-            ],
-          },
-          { timeout: config.studyAssistant.timeoutMs },
-        );
-        const toolUse = response.content.find((block) => block.type === 'tool_use');
-        if (!toolUse || toolUse.type !== 'tool_use') return null;
-        const parsed = StudyTutorDraftSchema.safeParse(toolUse.input);
-        if (!parsed.success) return null;
-        const validation = validateStudyTutorDraft(parsed.data, request.chunks);
-        return validation.valid ? parsed.data : null;
-      } catch {
-        return null;
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        let failureReason = 'provider_request_failed';
+        let failureStatus: number | undefined;
+        try {
+          const response = await client.messages.create(
+            {
+              model: config.studyAssistant.model,
+              max_tokens: maxTokensFor(request.explanationDepth),
+              system: SYSTEM_PROMPT,
+              tools: [STUDY_ASSIST_TOOL],
+              tool_choice: { type: 'tool', name: 'record_grounded_explanation' },
+              messages: [
+                {
+                  role: 'user',
+                  content:
+                    `Trusted request:\n${JSON.stringify(trustedRequest)}\n\n` +
+                    `<UNTRUSTED_STUDY_MATERIAL>\n${catalog}\n</UNTRUSTED_STUDY_MATERIAL>`,
+                },
+              ],
+            },
+            { timeout: config.studyAssistant.timeoutMs },
+          );
+          const toolUse = response.content.find((block) => block.type === 'tool_use');
+          if (!toolUse || toolUse.type !== 'tool_use') {
+            failureReason = 'missing_tool_response';
+          } else {
+            const parsed = StudyTutorDraftSchema.safeParse(toolUse.input);
+            if (!parsed.success) {
+              failureReason = 'invalid_tool_response';
+            } else {
+              const validation = validateStudyTutorDraft(parsed.data, request.chunks);
+              if (validation.valid) return parsed.data;
+              failureReason = 'ungrounded_tool_response';
+            }
+          }
+        } catch (error) {
+          const status = (error as { status?: unknown } | null)?.status;
+          failureStatus =
+            typeof status === 'number' && status >= 100 && status <= 599
+              ? status
+              : undefined;
+          const name = error instanceof Error ? error.name : '';
+          failureReason =
+            name === 'APIConnectionTimeoutError' || name === 'AbortError'
+              ? 'provider_timeout'
+              : failureStatus === 401
+                ? 'provider_authentication_failed'
+                : failureStatus === 403
+                  ? 'provider_permission_denied'
+                  : failureStatus === 429
+                    ? 'provider_rate_limited'
+                    : failureStatus !== undefined && failureStatus >= 500
+                      ? 'provider_unavailable'
+                      : 'provider_request_failed';
+        }
+
+        const retrying = attempt === 1;
+        log[retrying ? 'warn' : 'error']('studytutor.provider_failure', {
+          attempt,
+          reason: failureReason,
+          http_status: failureStatus,
+          retrying,
+        });
       }
+      return null;
     },
   };
 }
