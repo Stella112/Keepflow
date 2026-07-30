@@ -66,11 +66,17 @@ describe('Study paid request replay', () => {
       expect(challenge.resource).not.toContain('Geology');
       expect(challenge.resource).not.toContain('tectonics');
 
-      const paid = await fetch(`${origin}${challenge.resource}`, {
+      const paymentEnvelope = Buffer.from(JSON.stringify({
+        x402Version: 2,
+        resource: { url: `${origin}${challenge.resource}` },
+        accepted: {},
+        payload: {},
+      })).toString('base64');
+      const paid = await fetch(`${origin}/v1/study`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'PAYMENT-SIGNATURE': 'test-paid-replay',
+          'PAYMENT-SIGNATURE': paymentEnvelope,
         },
         body: '{}',
       });

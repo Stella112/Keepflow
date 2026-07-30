@@ -30,8 +30,32 @@ function pruneExpiredReplays(now = Date.now()): void {
 
 function replayToken(req: Request): string | undefined {
   const value = req.query[REPLAY_QUERY_KEY];
-  if (typeof value === 'string') return value;
-  return Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined;
+  const queryToken = typeof value === 'string'
+    ? value
+    : Array.isArray(value) && typeof value[0] === 'string'
+      ? value[0]
+      : undefined;
+  if (queryToken) return queryToken;
+
+  // Some OKX clients correctly sign the challenged resource URL but replay
+  // against the original endpoint without its query string. Recover the
+  // opaque reference from the signed v2 payment envelope in that case.
+  const paymentHeader = req.headers['payment-signature'];
+  if (typeof paymentHeader !== 'string' || paymentHeader.length > 32_768) {
+    return undefined;
+  }
+  try {
+    const envelope = JSON.parse(Buffer.from(paymentHeader, 'base64').toString('utf8')) as {
+      resource?: { url?: unknown };
+    };
+    if (typeof envelope.resource?.url !== 'string') return undefined;
+    const resource = new URL(envelope.resource.url);
+    if (resource.pathname !== '/v1/study') return undefined;
+    const token = resource.searchParams.get(REPLAY_QUERY_KEY) ?? undefined;
+    return token && /^[A-Za-z0-9_-]{32}$/.test(token) ? token : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
