@@ -176,6 +176,23 @@ describe('Continuity Pack artifact generation', () => {
 });
 
 describe('Continuity Pack HTTP capability', () => {
+  it('accepts JSON-stringified nested fields from paid clients', async () => {
+    const input = validInput();
+    const { response, body } = await postToRouter({
+      ...input,
+      location: JSON.stringify(input.location),
+      access: JSON.stringify(input.access),
+      stakeholders: JSON.stringify(input.stakeholders),
+      immediate_deadlines: JSON.stringify(input.immediate_deadlines),
+      include_artifacts: JSON.stringify(input.include_artifacts),
+    });
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      situation_type: input.situation_type,
+      service: 'KeepFlow Continuity Pack - Executable Life Continuity',
+    });
+  });
+
   it('serves one complete stateless pack through the standalone route', async () => {
     const { response, body } = await postToRouter(validInput());
     expect(response.status).toBe(200);

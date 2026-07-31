@@ -23,11 +23,28 @@ import { createGoogleMapsProvider } from '../context/google-maps-provider.js';
 import { config } from '../config.js';
 import { buildContextRouting } from '../engine/context-routing.js';
 import { contextInputForService, continuityCategories } from '../context/service-context.js';
+import { normalizeJsonObjectField } from '../http/normalize-json-field.js';
 
 const INPUT_LOCAL = 'continuityPackInput';
 const PERSONAL_DATA_LOCAL = 'continuityPackPersonalDataMasked';
 const CLEANUP_LOCAL = 'continuityPackCleanup';
 type Cleanup = () => void;
+
+const JSON_FIELDS = [
+  'location',
+  'access',
+  'stakeholders',
+  'immediate_deadlines',
+  'include_artifacts',
+  'real_world_context',
+] as const;
+
+function normalizeContinuityInput(body: unknown): unknown {
+  return JSON_FIELDS.reduce(
+    (normalized, field) => normalizeJsonObjectField(normalized, field),
+    body,
+  );
+}
 
 function installCleanup(req: Request, res: Response): Cleanup {
   let cleaned = false;
@@ -101,7 +118,7 @@ export function continuityPackPrepaymentGuard(
     next();
     return;
   }
-  const parsed = ContinuityPackInputSchema.safeParse(req.body);
+  const parsed = ContinuityPackInputSchema.safeParse(normalizeContinuityInput(req.body));
   if (!parsed.success) {
     req.body = {};
     res.status(400).json({
